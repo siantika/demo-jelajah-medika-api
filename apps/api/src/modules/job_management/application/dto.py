@@ -1,5 +1,9 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal, Optional
+from uuid import UUID
+
+JobStatus = Literal["PENDING", "RUNNING", "SUCCESS", "FAILED"]
 
 
 @dataclass(frozen=True)
@@ -14,3 +18,21 @@ class CreatePredictionCmd:
     dataset_name: Literal["davis", "kiba"]
     model_version: str 
     options: Optional[PredictionOptionsCmd] = None
+
+
+
+@dataclass(frozen=True)
+class GetJobStatusResult:
+    job_id: UUID
+    status: JobStatus
+    created_at: datetime
+    updated_at: datetime
+    result: Optional[list[dict]]
+    metrics: Optional[dict]
+    error_code: Optional[str]
+    error_message: Optional[str]
+
+
+@dataclass(frozen=True, kw_only=True)
+class GetPredictionJobQuery:
+    job_id: UUID
