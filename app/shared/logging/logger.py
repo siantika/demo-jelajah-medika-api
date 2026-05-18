@@ -4,7 +4,7 @@ from typing import Any
 
 import structlog
 
-from app.api.shared.logging.i_logger import ILogger
+from app.shared.logging.i_logger import ILogger
 
 
 def _mask_sensitive_fields(_, __, event_dict):
