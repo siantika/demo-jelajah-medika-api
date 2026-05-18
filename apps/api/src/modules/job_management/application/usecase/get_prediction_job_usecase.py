@@ -4,7 +4,7 @@ from modules.job_management.application.dto import (
     GetJobStatusResult,
     GetPredictionJobQuery,
 )
-from modules.job_management.domain.repositories.prediction_job_repository import (
+from apps.shared.job_management.contracts.repositories.prediction_job_repository import (
     PredictionJobRepository,
 )
 

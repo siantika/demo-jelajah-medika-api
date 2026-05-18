@@ -6,15 +6,15 @@ from uuid import UUID, uuid4
 from modules.job_management.application.dto import CreatePredictionCmd, PredictionOptionsCmd
 from modules.job_management.application.ports.job_queue import JobQueue
 from modules.job_management.application.ports.smiles_validator import SmilesValidator
-from modules.job_management.domain.entities.prediction_job import PredictionJob
-from modules.job_management.domain.exceptions import InvalidValueObject
-from modules.job_management.domain.repositories.prediction_job_repository import (
+from apps.shared.job_management.domain.entities.prediction_job import PredictionJob
+from apps.shared.job_management.domain.exceptions import InvalidValueObject
+from apps.shared.job_management.contracts.repositories.prediction_job_repository import (
     PredictionJobRepository,
 )
-from modules.job_management.domain.value_objects.dataset import Dataset
-from modules.job_management.domain.value_objects.model_version import ModelVersion
-from modules.job_management.domain.value_objects.options import Options
-from modules.job_management.domain.value_objects.smiles import Smiles
+from apps.shared.job_management.domain.value_objects.dataset import Dataset
+from apps.shared.job_management.domain.value_objects.model_version import ModelVersion
+from apps.shared.job_management.domain.value_objects.options import Options
+from apps.shared.job_management.domain.value_objects.smiles import Smiles
 
 
 @dataclass(frozen=True)
