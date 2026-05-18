@@ -16,7 +16,7 @@ from modules.job_management.domain.value_objects.smiles import Smiles
 
 @dataclass(frozen=True)
 class CreatePredictionResult:
-    prediction_id: UUID
+    job_id: UUID
     task_id: str
 
 
@@ -46,5 +46,5 @@ class CreatePredictionJobUseCase:
             model_version=ModelVersion(cmd.model_version),
         )
 
-        task_id = self.job_queue.enqueue_prediction(prediction_id=prediction_job.id)
-        return CreatePredictionResult(prediction_id=prediction_job.id, task_id=task_id)
+        task_id = self.job_queue.enqueue_prediction(job_id=prediction_job.id)
+        return CreatePredictionResult(job_id=prediction_job.id, task_id=task_id)
