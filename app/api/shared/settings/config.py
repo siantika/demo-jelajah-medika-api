@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     # server
     host: str
     port: int
+    database_url: str
 
     model_config = ConfigDict(
         env_file=".env",

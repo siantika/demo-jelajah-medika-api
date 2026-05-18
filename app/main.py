@@ -1,6 +1,9 @@
 import uvicorn
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.shared.database.session import db_session_dependency
 from app.api.shared.logging.logger import StructlogLogger, setup_logger
 from app.api.shared.settings.config import settings
 
@@ -19,6 +22,13 @@ app = FastAPI(
 def home():
     logger.info("home_endpoint_called")
     return {"data": "server is running"}
+
+
+@app.get("/health/db")
+async def health_db(session: AsyncSession = Depends(db_session_dependency)):
+    result = await session.execute(text("SELECT 1"))
+    is_ok = result.scalar_one() == 1
+    return {"database": "ok" if is_ok else "failed"}
 
 
 if __name__ == "__main__":
