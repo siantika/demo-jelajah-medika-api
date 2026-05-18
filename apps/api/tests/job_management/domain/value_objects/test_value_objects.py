@@ -84,7 +84,11 @@ def test_smiles_rejects_unpaired_ring_digit() -> None:
         Smiles("C1CC")
 
 
-def test_dataset_currently_has_no_validation() -> None:
-    # Reflect current implementation: Dataset.__post_init__ is a no-op.
-    dataset = Dataset(name="")
-    assert dataset.name == ""
+def test_dataset_rejects_empty() -> None:
+    with pytest.raises(InvalidValueObject):
+        Dataset(name="")
+
+
+def test_dataset_normalizes_to_uppercase_enum_value() -> None:
+    dataset = Dataset(name="davis")
+    assert dataset.name == "DAVIS"

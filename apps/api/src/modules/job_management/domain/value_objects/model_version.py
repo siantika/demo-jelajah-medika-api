@@ -37,3 +37,6 @@ class ModelVersion:
                 value=s
             )
         object.__setattr__(self, "value", s)
+
+    def __str__(self) -> str:
+        return self.value

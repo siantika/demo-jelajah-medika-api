@@ -30,3 +30,6 @@ class JobStatus:
                 reason="JobStatus should be JobStatusEnumType",
                 value=self.value
             )
+
+    def __str__(self) -> str:
+        return self.value.value

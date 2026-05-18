@@ -63,6 +63,9 @@ class Smiles:
 
         # normalisasi: simpan versi stripped
         object.__setattr__(self, "value", s)
+    
+    def __str__(self) -> str:
+        return self.value
 
     @staticmethod
     def _check_balanced(s: str) -> None:
