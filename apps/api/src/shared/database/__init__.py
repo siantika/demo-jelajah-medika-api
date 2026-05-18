@@ -1,5 +1,5 @@
-from app.shared.database.engine import engine
-from app.shared.database.session import (
+from apps.api.src.shared.database.engine import engine
+from apps.api.src.shared.database.session import (
     SessionFactory,
     db_session_dependency,
     get_db_session,

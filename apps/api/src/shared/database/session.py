@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.shared.database.engine import engine
+from apps.api.src.shared.database.engine import engine
 
 SessionFactory = async_sessionmaker(
     bind=engine,

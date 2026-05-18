@@ -3,9 +3,9 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.shared.database.session import db_session_dependency
-from app.shared.logging.logger import StructlogLogger, setup_logger
-from app.shared.settings.config import settings
+from apps.api.src.shared.database.session import db_session_dependency
+from apps.api.src.shared.logging.logger import StructlogLogger, setup_logger
+from apps.api.src.shared.settings.config import settings
 
 setup_logger(json_format=True, log_level="INFO")
 logger = StructlogLogger("endpoint")
