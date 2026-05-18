@@ -8,6 +8,9 @@ from modules.job_management.application.ports.job_queue import JobQueue
 from modules.job_management.application.ports.smiles_validator import SmilesValidator
 from modules.job_management.domain.entities.prediction_job import PredictionJob
 from modules.job_management.domain.exceptions import InvalidValueObject
+from modules.job_management.domain.repositories.prediction_job_repository import (
+    PredictionJobRepository,
+)
 from modules.job_management.domain.value_objects.dataset import Dataset
 from modules.job_management.domain.value_objects.model_version import ModelVersion
 from modules.job_management.domain.value_objects.options import Options
@@ -21,9 +24,15 @@ class CreatePredictionResult:
 
 
 class CreatePredictionJobUseCase:
-    def __init__(self, job_queue: JobQueue, smiles_validator: SmilesValidator):
+    def __init__(
+        self,
+        job_queue: JobQueue,
+        smiles_validator: SmilesValidator,
+        repository: PredictionJobRepository,
+    ):
         self.job_queue = job_queue
         self.smiles_validator = smiles_validator
+        self.repository = repository
 
     def execute(self, cmd: CreatePredictionCmd) -> CreatePredictionResult:
         if not self.smiles_validator.is_valid(smiles=cmd.smiles):
@@ -46,5 +55,6 @@ class CreatePredictionJobUseCase:
             model_version=ModelVersion(cmd.model_version),
         )
 
+        self.repository.save(job=prediction_job)
         task_id = self.job_queue.enqueue_prediction(job_id=prediction_job.id)
         return CreatePredictionResult(job_id=prediction_job.id, task_id=task_id)

@@ -7,4 +7,6 @@ from modules.job_management.domain.entities.prediction_job import PredictionJob
 
 
 class PredictionJobRepository(Protocol):
+    def save(self, *, job: PredictionJob) -> None: ...
+
     def get_by_id(self, *, job_id: UUID) -> PredictionJob | None: ...
