@@ -29,6 +29,7 @@ def test_default_status_is_pending() -> None:
     job = make_job()
 
     assert job.status.value == JobStatusEnum.PENDING
+    assert job.status.value.value == "PENDING"
     assert job.result == []
     assert job.error is None
 
