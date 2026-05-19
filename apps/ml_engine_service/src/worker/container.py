@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Callable
 
 from apps.ml_engine_service.src.application.ports.prediction_engine import PredictionEngine
-from apps.ml_engine_service.src.infra.integrations.gnn_predictor import GNNPredictionEngine
 from apps.shared.job_management.contracts.repositories.prediction_job_repository import (
     PredictionJobRepository,
 )
@@ -26,5 +25,9 @@ def get_repository() -> PredictionJobRepository:
 
 
 def get_prediction_engine() -> PredictionEngine:
+    from apps.ml_engine_service.src.infra.integrations.gnn_predictor import (
+        GNNPredictionEngine,
+    )
+
     # Assets root is relative to project root by default.
     return GNNPredictionEngine(assets_root=".")
