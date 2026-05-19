@@ -4,6 +4,11 @@ import os
 
 from celery import Celery
 
+from apps.ml_engine_service.src.infra.repositories.in_memory_prediction_job_repository import (
+    InMemoryPredictionJobRepository,
+)
+from apps.ml_engine_service.src.worker.container import configure_repository_factory
+
 BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
 
@@ -20,6 +25,9 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
+
+_default_repository = InMemoryPredictionJobRepository()
+configure_repository_factory(lambda: _default_repository)
 
 # Ensure task module is loaded.
 celery_app.autodiscover_tasks(
