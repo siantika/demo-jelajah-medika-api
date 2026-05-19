@@ -3,16 +3,16 @@ from uuid import uuid4
 
 import pytest
 
-from modules.job_management.domain.entities.prediction_job import PredictionJob
-from modules.job_management.domain.exceptions import InvalidValueObject
-from modules.job_management.domain.value_objects.dataset import Dataset
-from modules.job_management.domain.value_objects.job_status import JobStatusEnum
-from modules.job_management.domain.value_objects.model_version import ModelVersion
-from modules.job_management.domain.value_objects.options import Options
-from modules.job_management.domain.value_objects.prediction_result_item import (
+from apps.shared.job_management.domain.entities.prediction_job import PredictionJob
+from apps.shared.job_management.domain.exceptions import InvalidValueObject
+from apps.shared.job_management.domain.value_objects.dataset import Dataset
+from apps.shared.job_management.domain.value_objects.job_status import JobStatusEnum
+from apps.shared.job_management.domain.value_objects.model_version import ModelVersion
+from apps.shared.job_management.domain.value_objects.options import Options
+from apps.shared.job_management.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
-from modules.job_management.domain.value_objects.smiles import Smiles
+from apps.shared.job_management.domain.value_objects.smiles import Smiles
 
 
 def make_job() -> PredictionJob:

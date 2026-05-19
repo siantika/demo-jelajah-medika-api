@@ -2,15 +2,15 @@ import math
 
 import pytest
 
-from modules.job_management.domain.exceptions import InvalidValueObject
-from modules.job_management.domain.value_objects.dataset import Dataset
-from modules.job_management.domain.value_objects.job_status import JobStatus, JobStatusEnum
-from modules.job_management.domain.value_objects.model_version import ModelVersion
-from modules.job_management.domain.value_objects.options import Options
-from modules.job_management.domain.value_objects.prediction_result_item import (
+from apps.shared.job_management.domain.exceptions import InvalidValueObject
+from apps.shared.job_management.domain.value_objects.dataset import Dataset
+from apps.shared.job_management.domain.value_objects.job_status import JobStatus, JobStatusEnum
+from apps.shared.job_management.domain.value_objects.model_version import ModelVersion
+from apps.shared.job_management.domain.value_objects.options import Options
+from apps.shared.job_management.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
-from modules.job_management.domain.value_objects.smiles import Smiles
+from apps.shared.job_management.domain.value_objects.smiles import Smiles
 
 
 def test_job_status_accepts_enum_value() -> None:
