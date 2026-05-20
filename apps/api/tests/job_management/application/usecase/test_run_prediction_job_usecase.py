@@ -4,15 +4,15 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.shared.job_management.domain.entities.prediction_job import PredictionJob
-from apps.shared.job_management.domain.value_objects.dataset import Dataset
-from apps.shared.job_management.domain.value_objects.job_status import JobStatusEnum
-from apps.shared.job_management.domain.value_objects.model_version import ModelVersion
-from apps.shared.job_management.domain.value_objects.options import Options
-from apps.shared.job_management.domain.value_objects.prediction_result_item import (
+from apps.shared.job_management_domain.domain.entities.prediction_job import PredictionJob
+from apps.shared.job_management_domain.domain.value_objects.dataset import Dataset
+from apps.shared.job_management_domain.domain.value_objects.job_status import JobStatusEnum
+from apps.shared.job_management_domain.domain.value_objects.model_version import ModelVersion
+from apps.shared.job_management_domain.domain.value_objects.options import Options
+from apps.shared.job_management_domain.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
-from apps.shared.job_management.domain.value_objects.smiles import Smiles
+from apps.shared.job_management_domain.domain.value_objects.smiles import Smiles
 from apps.ml_engine_service.src.application.usecase.run_prediction_job_usecase import (
     PredictionJobNotFoundError,
     RunPredictionJobCmd,

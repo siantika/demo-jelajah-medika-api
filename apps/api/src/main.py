@@ -6,20 +6,20 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.src.modules.job_management.infra.job_queue_celery import (
+from apps.api.src.modules.job_management_api.infra.job_queue_celery import (
     CeleryJobQueue,
     build_celery_app,
 )
-from apps.api.src.modules.job_management.infra.smiles_validator_default import (
+from apps.api.src.modules.job_management_api.infra.smiles_validator_default import (
     DomainSmilesValidator,
 )
-from apps.api.src.modules.job_management.infra.repositories.in_memory_prediction_job_repository import (
+from apps.api.src.modules.job_management_api.infra.repositories.in_memory_prediction_job_repository import (
     InMemoryPredictionJobRepository,
 )
-from apps.api.src.modules.job_management.infra.repositories.sqlalchemy_prediction_job_repository import (
+from apps.api.src.modules.job_management_api.infra.repositories.sqlalchemy_prediction_job_repository import (
     SQLAlchemyPredictionJobRepository,
 )
-from apps.api.src.modules.job_management.api import router as job_management_router
+from apps.api.src.modules.job_management_api.api import router as job_management_router
 from apps.api.src.shared.database.session import db_session_dependency
 from apps.api.src.shared.logging.logger import StructlogLogger, setup_logger
 from apps.api.src.shared.settings.config import settings

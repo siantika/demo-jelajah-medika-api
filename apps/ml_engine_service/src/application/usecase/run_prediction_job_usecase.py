@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from apps.shared.job_management.contracts.prediction_engine import PredictionEngine
+from apps.shared.job_management_domain.contracts.prediction_engine import PredictionEngine
 from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
-from apps.shared.job_management.domain.errors import PredictionJobNotFoundError
+from apps.shared.job_management_domain.domain.errors import PredictionJobNotFoundError
 
 
 @dataclass(frozen=True)

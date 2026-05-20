@@ -8,7 +8,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from apps.shared.job_management.infra.db.models.prediction_jobs import metadata
+from apps.shared.job_management_domain.infra.db.models.prediction_jobs import metadata
 
 config = context.config
 
