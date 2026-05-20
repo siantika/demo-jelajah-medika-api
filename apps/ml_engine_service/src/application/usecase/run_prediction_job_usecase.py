@@ -3,16 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from apps.ml_engine_service.src.application.ports.prediction_engine import PredictionEngine
+from apps.shared.job_management.contracts.prediction_engine import PredictionEngine
 from apps.shared.job_management.contracts.repositories.prediction_job_repository import (
     PredictionJobRepository,
 )
-
-
-class PredictionJobNotFoundError(LookupError):
-    def __init__(self, *, job_id: object) -> None:
-        super().__init__(f"Prediction job not found: {job_id}")
-        self.job_id = job_id
+from apps.shared.job_management.domain.errors import PredictionJobNotFoundError
 
 
 @dataclass(frozen=True)
