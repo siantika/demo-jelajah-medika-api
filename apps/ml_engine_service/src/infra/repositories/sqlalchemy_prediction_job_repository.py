@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import UUID
 
@@ -42,19 +43,15 @@ prediction_jobs = Table(
 
 
 class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
-    def __init__(self, database_url: str | None = None) -> None:
+    def __init__(
+        self,
+        database_url: str | None = None,
+    ) -> None:
         url = database_url or os.getenv("DATABASE_URL")
         if not url:
             raise RuntimeError("DATABASE_URL is required for SQLAlchemyPredictionJobRepository")
 
-        self._engine: AsyncEngine = create_async_engine(url, pool_pre_ping=True)
-        self._session_factory = async_sessionmaker(
-            bind=self._engine,
-            class_=AsyncSession,
-            expire_on_commit=False,
-            autoflush=False,
-        )
-        self._schema_ready = False
+        self._database_url = url
 
     def save(self, *, job: PredictionJob) -> None:
         asyncio.run(self._save(job=job))
@@ -62,33 +59,40 @@ class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
     def get_by_id(self, *, job_id: UUID) -> PredictionJob | None:
         return asyncio.run(self._get_by_id(job_id=job_id))
 
-    async def _ensure_schema(self) -> None:
-        if self._schema_ready:
-            return
-        async with self._engine.begin() as conn:
-            await conn.run_sync(metadata.create_all)
-        self._schema_ready = True
-
     async def _save(self, *, job: PredictionJob) -> None:
-        await self._ensure_schema()
         payload = self._to_row(job)
-        stmt = insert(prediction_jobs).values(**payload)
-        upsert_stmt = stmt.on_conflict_do_update(
-            index_elements=[prediction_jobs.c.id],
-            set_=payload,
-        )
-        async with self._session_factory() as session:
-            await session.execute(upsert_stmt)
-            await session.commit()
+        async with self._engine_ctx() as (_, session_factory):
+            stmt = insert(prediction_jobs).values(**payload)
+            upsert_stmt = stmt.on_conflict_do_update(
+                index_elements=[prediction_jobs.c.id],
+                set_=payload,
+            )
+            async with session_factory() as session:
+                await session.execute(upsert_stmt)
+                await session.commit()
 
     async def _get_by_id(self, *, job_id: UUID) -> PredictionJob | None:
-        await self._ensure_schema()
         stmt = select(prediction_jobs).where(prediction_jobs.c.id == job_id)
-        async with self._session_factory() as session:
-            row = (await session.execute(stmt)).mappings().first()
+        async with self._engine_ctx() as (_, session_factory):
+            async with session_factory() as session:
+                row = (await session.execute(stmt)).mappings().first()
         if row is None:
             return None
         return self._from_row(dict(row))
+
+    @asynccontextmanager
+    async def _engine_ctx(self):
+        engine: AsyncEngine = create_async_engine(self._database_url, pool_pre_ping=True)
+        session_factory = async_sessionmaker(
+            bind=engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+            autoflush=False,
+        )
+        try:
+            yield engine, session_factory
+        finally:
+            await engine.dispose()
 
     @staticmethod
     def _to_row(job: PredictionJob) -> dict:

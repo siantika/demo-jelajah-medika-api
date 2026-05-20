@@ -7,3 +7,4 @@ SQLAlchemy==2.0.41
 asyncpg==0.30.0
 pytest==8.4.2
 celery==5.4.0
+alembic==1.14.1
