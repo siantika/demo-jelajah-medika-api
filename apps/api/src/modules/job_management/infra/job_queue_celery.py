@@ -5,7 +5,7 @@ from uuid import UUID
 
 from celery import Celery
 
-from modules.job_management.application.ports.job_queue import JobQueue
+from apps.api.src.modules.job_management.application.ports.job_queue import JobQueue
 
 
 class CeleryJobQueue(JobQueue):

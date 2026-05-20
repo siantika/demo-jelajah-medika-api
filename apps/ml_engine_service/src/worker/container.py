@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Callable
 
-from apps.shared.job_management.contracts.prediction_engine import PredictionEngine
-from apps.shared.job_management.contracts.repositories.prediction_job_repository import (
+from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
+from apps.shared.job_management.contracts.prediction_engine import PredictionEngine
 
 _repository_factory: Callable[[], PredictionJobRepository] | None = None
 

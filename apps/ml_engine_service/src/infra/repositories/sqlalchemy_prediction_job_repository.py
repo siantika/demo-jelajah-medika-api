@@ -10,7 +10,7 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, MetaData, String, Tab
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID, insert
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
-from apps.shared.job_management.contracts.repositories.prediction_job_repository import (
+from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
 from apps.shared.job_management.domain.entities.prediction_job import PredictionJob

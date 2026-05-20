@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from apps.shared.job_management.contracts.prediction_engine import PredictionEngine
-from apps.shared.job_management.contracts.repositories.prediction_job_repository import (
+from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
 from apps.shared.job_management.domain.errors import PredictionJobNotFoundError

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from modules.job_management.application.dto import (
+from apps.api.src.modules.job_management.application.dto import (
     GetJobStatusResult,
     GetPredictionJobQuery,
 )
-from apps.shared.job_management.contracts.repositories.prediction_job_repository import (
+from apps.api.src.modules.job_management.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
 from apps.shared.job_management.domain.errors import PredictionJobNotFoundError

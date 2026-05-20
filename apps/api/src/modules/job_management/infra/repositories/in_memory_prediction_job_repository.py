@@ -4,7 +4,7 @@ from copy import deepcopy
 from threading import RLock
 from uuid import UUID
 
-from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
+from apps.api.src.modules.job_management.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
 from apps.shared.job_management.domain.entities.prediction_job import PredictionJob
@@ -15,7 +15,7 @@ class InMemoryPredictionJobRepository(PredictionJobRepository):
         self._jobs: dict[UUID, PredictionJob] = {}
         self._lock = RLock()
 
-    def save(self, *, job: PredictionJob) -> None:
+    def create(self, *, job: PredictionJob) -> None:
         with self._lock:
             self._jobs[job.id] = deepcopy(job)
 

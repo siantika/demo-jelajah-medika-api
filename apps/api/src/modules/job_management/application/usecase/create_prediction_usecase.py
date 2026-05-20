@@ -3,14 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
-from modules.job_management.application.dto import CreatePredictionCmd, PredictionOptionsCmd
-from modules.job_management.application.ports.job_queue import JobQueue
-from modules.job_management.application.ports.smiles_validator import SmilesValidator
-from apps.shared.job_management.domain.entities.prediction_job import PredictionJob
-from apps.shared.job_management.domain.exceptions import InvalidValueObject
-from apps.shared.job_management.contracts.repositories.prediction_job_repository import (
+from apps.api.src.modules.job_management.application.dto import (
+    CreatePredictionCmd,
+    PredictionOptionsCmd,
+)
+from apps.api.src.modules.job_management.application.ports.job_queue import JobQueue
+from apps.api.src.modules.job_management.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
+from apps.api.src.modules.job_management.application.ports.smiles_validator import SmilesValidator
+from apps.shared.job_management.domain.entities.prediction_job import PredictionJob
+from apps.shared.job_management.domain.exceptions import InvalidValueObject
 from apps.shared.job_management.domain.value_objects.dataset import Dataset
 from apps.shared.job_management.domain.value_objects.model_version import ModelVersion
 from apps.shared.job_management.domain.value_objects.options import Options
@@ -55,6 +58,6 @@ class CreatePredictionJobUseCase:
             model_version=ModelVersion(cmd.model_version),
         )
 
-        self.repository.save(job=prediction_job)
+        self.repository.create(job=prediction_job)
         task_id = self.job_queue.enqueue_prediction(job_id=prediction_job.id)
         return CreatePredictionResult(job_id=prediction_job.id, task_id=task_id)
