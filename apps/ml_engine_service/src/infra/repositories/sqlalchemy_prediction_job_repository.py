@@ -6,8 +6,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, MetaData, String, Table, Text, select
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID, insert
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
@@ -22,24 +22,7 @@ from apps.shared.job_management.domain.value_objects.prediction_result_item impo
     PredictionResultItem,
 )
 from apps.shared.job_management.domain.value_objects.smiles import Smiles
-
-metadata = MetaData()
-
-prediction_jobs = Table(
-    "prediction_jobs",
-    metadata,
-    Column("id", PGUUID(as_uuid=True), primary_key=True),
-    Column("smiles", Text, nullable=False),
-    Column("dataset", String(16), nullable=False),
-    Column("top_k", Integer, nullable=False),
-    Column("return_sequence", Boolean, nullable=False),
-    Column("model_version", String(64), nullable=False),
-    Column("status", String(16), nullable=False),
-    Column("result", JSONB, nullable=False, default=list),
-    Column("error", Text, nullable=True),
-    Column("created_at", DateTime(timezone=True), nullable=False),
-    Column("updated_at", DateTime(timezone=True), nullable=False),
-)
+from apps.shared.job_management.infra.db.models.prediction_jobs import prediction_jobs
 
 
 class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
