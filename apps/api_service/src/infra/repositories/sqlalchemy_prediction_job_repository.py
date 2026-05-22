@@ -40,10 +40,6 @@ class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
     def __init__(self, db: AsyncSession) -> None:
         self._session = db
 
-    # ------------------------------------------------------------------
-    # Public interface (fully async)
-    # ------------------------------------------------------------------
-
     async def save(self, *, job: PredictionJob) -> None:
         """Persist a new PredictionJob.  Raises IntegrityError on duplicate id."""
         stmt = (
@@ -60,44 +56,6 @@ class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
         row = (await self._session.execute(stmt)).mappings().first()
         return self._from_row(dict(row)) if row is not None else None
 
-    async def update_status(
-        self,
-        *,
-        job_id: UUID,
-        status: JobStatus,
-        result: list[PredictionResultItem] | None = None,
-        error: str | None = None,
-        updated_at: datetime,
-    ) -> None:
-        """Update status (and optionally result / error) for an existing job."""
-        values: dict = {
-            "status": status.value.value,
-            "updated_at": updated_at,
-        }
-        if result is not None:
-            values["result"] = [
-                {
-                    "affinity": item.affinity,
-                    "sequence_target": item.target_sequence,
-                    "target_index": None,
-                }
-                for item in result
-            ]
-        if error is not None:
-            values["error_message"] = error
-            values["error_code"] = "PREDICTION_FAILED"
-
-        stmt = (
-            update(jobs)
-            .where(jobs.c.id == job_id)
-            .values(**values)
-        )
-        await self._session.execute(stmt)
-        await self._session.commit()
-
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _to_row(job: PredictionJob) -> dict:
