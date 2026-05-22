@@ -55,8 +55,7 @@ async def get_prediction_job(
     job_id: UUID,
     usecase: GetPredictionJobUseCaseDep,
 ) -> JobStatusResponse:
-    execution_result = usecase.execute_async(GetPredictionJobQuery(job_id=job_id))
-    result = await execution_result if inspect.isawaitable(execution_result) else execution_result
+    result = await usecase.execute(GetPredictionJobQuery(job_id=job_id))
 
     items = None
     if result.result is not None:
