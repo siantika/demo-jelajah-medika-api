@@ -54,7 +54,7 @@ class PredictionCreateResponse(StrictSchema):
     job_id: UUID = Field(..., description="Job identifier.", example="123e4567-e89b-12d3-a456-426614174000")
     status: Literal["PENDING", "RUNNING", "SUCCESS", "FAILED"] = Field(..., description="Job status.", example="PENDING")
     created_at: datetime = Field(..., description="Job creation timestamp.")
-    status_url: str = Field(..., description="URL to check job status.", example="/v1/jobs/123e4567-e89b-12d3-a456-426614174000")
+    status_url: str = Field(..., description="URL to check job status.", example="/api/v1/jobs/123e4567-e89b-12d3-a456-426614174000")
     model_version: str = Field(..., description="Model version used.", example="gnn_v1")
 
 class PredictionItem(StrictSchema):

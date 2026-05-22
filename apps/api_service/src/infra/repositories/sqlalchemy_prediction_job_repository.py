@@ -86,7 +86,11 @@ class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
 
     async def create(self, *, job: PredictionJob) -> None:
         """Persist a new PredictionJob.  Raises IntegrityError on duplicate id."""
-        stmt = insert(jobs).values(**self._to_row(job))
+        stmt = (
+            insert(jobs)
+            .values(**self._to_row(job))
+            .on_conflict_do_nothing(index_elements=[jobs.c.id])
+        )
         async with self._session_factory() as session:
             await session.execute(stmt)
             await session.commit()

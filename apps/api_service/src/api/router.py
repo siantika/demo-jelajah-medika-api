@@ -8,7 +8,6 @@ from fastapi import APIRouter, HTTPException, status
 from apps.api_service.src.api.dependencies import (
     CreatePredictionUseCaseDep,
     GetPredictionJobUseCaseDep,
-    RepositoryDep,
 )
 from apps.api_service.src.api.schemas import (
     JobStatusResponse,
@@ -31,7 +30,6 @@ router = APIRouter(prefix="/api/v1", tags=["job_management"])
 async def create_prediction(
     request: PredictionCreateRequest,
     usecase: CreatePredictionUseCaseDep,
-    repository: RepositoryDep,
 ) -> PredictionCreateResponse:
     try:
         execution_result = usecase.execute_async(
@@ -49,13 +47,11 @@ async def create_prediction(
     except InvalidValueObject as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
-
-
     return PredictionCreateResponse(
         job_id=result.job_id,
         status="PENDING",
-        created_at=job.created_at,
-        status_url=f"/v1/jobs/{result.job_id}",
+        created_at=result.created_at,
+        status_url=f"/api/v1/jobs/{result.job_id}",
         model_version=request.model_version,
     )
 
@@ -76,7 +72,7 @@ async def get_prediction_job(
         items = [
             PredictionItem(
                 affinity=item["affinity"],
-                sequence_target=item.get("sequence_target"),
+                sequence_target=item.get("target_sequence") or item.get("sequence_target"),
                 target_index=item.get("target_index"),
             )
             for item in result.result

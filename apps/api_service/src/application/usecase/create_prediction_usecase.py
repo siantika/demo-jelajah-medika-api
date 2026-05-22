@@ -4,6 +4,7 @@ import hashlib
 import inspect
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from apps.api_service.src.application.dto import (
@@ -31,6 +32,7 @@ from apps.shared.domain.value_objects.smiles import Smiles
 class CreatePredictionResult:
     job_id: UUID
     task_id: str
+    created_at: datetime
 
 
 class CreatePredictionJobUseCase:
@@ -45,6 +47,7 @@ class CreatePredictionJobUseCase:
         self.repository = repository
 
     def execute(self, cmd: CreatePredictionCmd) -> CreatePredictionResult:
+        # validate smiles input 
         if not self.smiles_validator.is_valid(smiles=cmd.smiles):
             raise InvalidValueObject(
                 name="Smiles",
@@ -52,15 +55,23 @@ class CreatePredictionJobUseCase:
                 value=cmd.smiles,
             )
 
+        # create value object for options field
         options_cmd = cmd.options or PredictionOptionsCmd()
+        
+        # It uses for idempotency resquest for same request
         request_hash = _build_request_hash(cmd=cmd, options_cmd=options_cmd)
         deterministic_job_id = uuid5(NAMESPACE_URL, request_hash)
 
-        # ini harusnya redis
-        # existing_job = self.repository.get_by_id(job_id=deterministic_job_id)
-        # if existing_job is not None:
-        #     return CreatePredictionResult(job_id=existing_job.id, task_id=str(existing_job.id))
-
+        # job should not process the same request
+        existing_job = self.repository.get_by_id(job_id=deterministic_job_id)
+        if existing_job is not None:
+            return CreatePredictionResult(
+                job_id=existing_job.id,
+                task_id=str(existing_job.id),
+                created_at=existing_job.created_at,
+            )
+        
+        # Create prediction Entity of prediction job
         prediction_job = PredictionJob(
             id=deterministic_job_id,
             smiles=Smiles(cmd.smiles),
@@ -72,9 +83,18 @@ class CreatePredictionJobUseCase:
             model_version=ModelVersion(cmd.model_version),
         )
 
+        # create and save prediction job to persitent layer
         self.repository.create(job=prediction_job)
+        
+        # Produce job_id to queue. Let another service consume it
         task_id = self.job_queue.enqueue_prediction(job_id=prediction_job.id)
-        return CreatePredictionResult(job_id=prediction_job.id, task_id=task_id)
+        
+        # return result
+        return CreatePredictionResult(
+            job_id=prediction_job.id,
+            task_id=task_id,
+            created_at=prediction_job.created_at,
+        )
 
     async def execute_async(self, cmd: CreatePredictionCmd) -> CreatePredictionResult:
         if not self.smiles_validator.is_valid(smiles=cmd.smiles):
@@ -87,6 +107,14 @@ class CreatePredictionJobUseCase:
         options_cmd = cmd.options or PredictionOptionsCmd()
         request_hash = _build_request_hash(cmd=cmd, options_cmd=options_cmd)
         deterministic_job_id = uuid5(NAMESPACE_URL, request_hash)
+        existing_job_result = self.repository.get_by_id(job_id=deterministic_job_id)
+        existing_job = await existing_job_result if inspect.isawaitable(existing_job_result) else existing_job_result
+        if existing_job is not None:
+            return CreatePredictionResult(
+                job_id=existing_job.id,
+                task_id=str(existing_job.id),
+                created_at=existing_job.created_at,
+            )
 
         prediction_job = PredictionJob(
             id=deterministic_job_id,
@@ -105,7 +133,11 @@ class CreatePredictionJobUseCase:
 
         task_id_result = self.job_queue.enqueue_prediction(job_id=prediction_job.id)
         task_id = await task_id_result if inspect.isawaitable(task_id_result) else task_id_result
-        return CreatePredictionResult(job_id=prediction_job.id, task_id=task_id)
+        return CreatePredictionResult(
+            job_id=prediction_job.id,
+            task_id=task_id,
+            created_at=prediction_job.created_at,
+        )
 
 
 def _build_request_hash(*, cmd: CreatePredictionCmd, options_cmd: PredictionOptionsCmd) -> str:

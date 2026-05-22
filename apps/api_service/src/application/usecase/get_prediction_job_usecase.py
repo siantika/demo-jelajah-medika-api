@@ -24,8 +24,7 @@ class GetPredictionJobUseCase:
         result_payload = [
             {
                 "affinity": item.affinity,
-                "sequence_target": item.target_sequence,
-                "target_index": None,
+                "target_sequence": item.target_sequence,
             }
             for item in job.result
         ] or None
@@ -50,8 +49,7 @@ class GetPredictionJobUseCase:
         result_payload = [
             {
                 "affinity": item.affinity,
-                "sequence_target": item.target_sequence,
-                "target_index": None,
+                "target_sequence": item.target_sequence,
             }
             for item in job.result
         ] or None
