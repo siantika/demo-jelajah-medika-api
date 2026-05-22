@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 
 from apps.api_service.src.api.dependencies import (
     CreatePredictionUseCaseDep,
@@ -20,8 +20,6 @@ from apps.api_service.src.application.dto import (
     GetPredictionJobQuery,
     PredictionOptionsCmd,
 )
-from apps.shared.domain.errors import PredictionJobNotFoundError
-from apps.shared.domain.exceptions import InvalidValueObject
 
 router = APIRouter(prefix="/api/v1", tags=["api_service"])
 
@@ -31,21 +29,17 @@ async def create_prediction(
     request: PredictionCreateRequest,
     usecase: CreatePredictionUseCaseDep,
 ) -> PredictionCreateResponse:
-    try:
-        result =  await usecase.execute(
-            CreatePredictionCmd(
-                smiles=request.smiles,
-                dataset_name=request.dataset_name,
-                model_version=request.model_version,
-                options=PredictionOptionsCmd(
-                    top_k=request.options.top_k if request.options else 100,
-                    return_sequences=request.options.return_sequences if request.options else False,
-                ),
-            )
+    result = await usecase.execute(
+        CreatePredictionCmd(
+            smiles=request.smiles,
+            dataset_name=request.dataset_name,
+            model_version=request.model_version,
+            options=PredictionOptionsCmd(
+                top_k=request.options.top_k if request.options else 100,
+                return_sequences=request.options.return_sequences if request.options else False,
+            ),
         )
-       
-    except InvalidValueObject as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    )
 
     return PredictionCreateResponse(
         job_id=result.id,
@@ -61,11 +55,8 @@ async def get_prediction_job(
     job_id: UUID,
     usecase: GetPredictionJobUseCaseDep,
 ) -> JobStatusResponse:
-    try:
-        execution_result = usecase.execute_async(GetPredictionJobQuery(job_id=job_id))
-        result = await execution_result if inspect.isawaitable(execution_result) else execution_result
-    except PredictionJobNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    execution_result = usecase.execute_async(GetPredictionJobQuery(job_id=job_id))
+    result = await execution_result if inspect.isawaitable(execution_result) else execution_result
 
     items = None
     if result.result is not None:

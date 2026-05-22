@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from apps.api_service.src.api import (
     router as job_management_router,
 )
+from apps.api_service.src.api.exception_handlers import register_exception_handlers
 from apps.api_service.src.infra.job_queue_celery import (
     InProcessJobQueue,
 )
@@ -50,6 +51,7 @@ app = FastAPI(
     contact={"name": "sian", "email": "pawesisiantika98@gmail.com"},
     lifespan=lifespan,
 )
+register_exception_handlers(app)
 app.include_router(job_management_router)
 
 
