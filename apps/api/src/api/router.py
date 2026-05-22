@@ -4,18 +4,18 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
 
-from apps.api.src.modules.job_management_api.api.schemas import (
+from apps.api.src.api.schemas import (
     JobStatusResponse,
     PredictionCreateRequest,
     PredictionCreateResponse,
     PredictionItem,
 )
-from apps.api.src.modules.job_management_api.application.dto import (
+from apps.api.src.application.dto import (
     CreatePredictionCmd,
     GetPredictionJobQuery,
     PredictionOptionsCmd,
 )
-from apps.api.src.modules.job_management_api.api.dependencies import (
+from apps.api.src.api.dependencies import (
     CreatePredictionUseCaseDep,
     GetPredictionJobUseCaseDep,
     RepositoryDep,

@@ -3,9 +3,8 @@ from __future__ import annotations
 import os
 from uuid import UUID
 
+from apps.api.src.job_management_api.application.ports.job_queue import JobQueue
 from celery import Celery
-
-from apps.api.src.modules.job_management_api.application.ports.job_queue import JobQueue
 
 
 class CeleryJobQueue(JobQueue):

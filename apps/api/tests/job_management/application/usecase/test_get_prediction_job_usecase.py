@@ -4,15 +4,19 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import pytest
-
-from apps.api.src.modules.job_management_api.application.dto import GetPredictionJobQuery
-from apps.api.src.modules.job_management_api.application.usecase.get_prediction_job_usecase import (
+from apps.api.src.job_management_api.application.dto import GetPredictionJobQuery
+from apps.api.src.job_management_api.application.usecase.get_prediction_job_usecase import (
     GetPredictionJobUseCase,
     PredictionJobNotFoundError,
 )
-from apps.shared.job_management_domain.domain.entities.prediction_job import PredictionJob
+
+from apps.shared.job_management_domain.domain.entities.prediction_job import (
+    PredictionJob,
+)
 from apps.shared.job_management_domain.domain.value_objects.dataset import Dataset
-from apps.shared.job_management_domain.domain.value_objects.model_version import ModelVersion
+from apps.shared.job_management_domain.domain.value_objects.model_version import (
+    ModelVersion,
+)
 from apps.shared.job_management_domain.domain.value_objects.options import Options
 from apps.shared.job_management_domain.domain.value_objects.prediction_result_item import (
     PredictionResultItem,

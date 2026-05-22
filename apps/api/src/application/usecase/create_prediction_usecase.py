@@ -3,15 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
-from apps.api.src.modules.job_management_api.application.dto import (
+from apps.api.src.application.dto import (
     CreatePredictionCmd,
     PredictionOptionsCmd,
 )
-from apps.api.src.modules.job_management_api.application.ports.job_queue import JobQueue
-from apps.api.src.modules.job_management_api.application.ports.prediction_job_repository import (
+from apps.api.src.application.ports.job_queue import JobQueue
+from apps.api.src.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
-from apps.api.src.modules.job_management_api.application.ports.smiles_validator import SmilesValidator
+from apps.api.src.application.ports.smiles_validator import SmilesValidator
 from apps.shared.job_management_domain.domain.entities.prediction_job import PredictionJob
 from apps.shared.job_management_domain.domain.exceptions import InvalidValueObject
 from apps.shared.job_management_domain.domain.value_objects.dataset import Dataset

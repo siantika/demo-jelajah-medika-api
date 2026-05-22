@@ -4,6 +4,9 @@ import os
 from datetime import datetime
 from uuid import UUID
 
+from apps.api.src.job_management_api.application.ports.prediction_job_repository import (
+    PredictionJobRepository,
+)
 from sqlalchemy import (
     select,
     update,
@@ -16,22 +19,25 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from apps.api.src.modules.job_management_api.application.ports.prediction_job_repository import (
-    PredictionJobRepository,
+from apps.shared.job_management_domain.domain.entities.prediction_job import (
+    PredictionJob,
 )
-from apps.shared.job_management_domain.domain.entities.prediction_job import PredictionJob
 from apps.shared.job_management_domain.domain.value_objects.dataset import Dataset
 from apps.shared.job_management_domain.domain.value_objects.job_status import (
     JobStatus,
     JobStatusEnum,
 )
-from apps.shared.job_management_domain.domain.value_objects.model_version import ModelVersion
+from apps.shared.job_management_domain.domain.value_objects.model_version import (
+    ModelVersion,
+)
 from apps.shared.job_management_domain.domain.value_objects.options import Options
 from apps.shared.job_management_domain.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
 from apps.shared.job_management_domain.domain.value_objects.smiles import Smiles
-from apps.shared.job_management_domain.infra.db.models.prediction_jobs import prediction_jobs
+from apps.shared.job_management_domain.infra.db.models.prediction_jobs import (
+    prediction_jobs,
+)
 
 
 class SQLAlchemyPredictionJobRepository(PredictionJobRepository):

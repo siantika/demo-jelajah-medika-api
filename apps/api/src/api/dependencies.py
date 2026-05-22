@@ -4,15 +4,15 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 
-from apps.api.src.modules.job_management_api.application.ports.job_queue import JobQueue
-from apps.api.src.modules.job_management_api.application.ports.prediction_job_repository import (
+from apps.api.src.application.ports.job_queue import JobQueue
+from apps.api.src.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
-from apps.api.src.modules.job_management_api.application.ports.smiles_validator import SmilesValidator
-from apps.api.src.modules.job_management_api.application.usecase.create_prediction_usecase import (
+from apps.api.src.application.ports.smiles_validator import SmilesValidator
+from apps.api.src.application.usecase.create_prediction_usecase import (
     CreatePredictionJobUseCase,
 )
-from apps.api.src.modules.job_management_api.application.usecase.get_prediction_job_usecase import (
+from apps.api.src.application.usecase.get_prediction_job_usecase import (
     GetPredictionJobUseCase,
 )
 def get_repository(request: Request) -> PredictionJobRepository:
