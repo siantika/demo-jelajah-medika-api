@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from apps.shared.job_management_domain.domain.exceptions import InvalidValueObject
+from apps.shared.domain.exceptions import InvalidValueObject
 
 
 @dataclass(frozen=True)

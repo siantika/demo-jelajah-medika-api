@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from apps.shared.job_management_domain.domain.exceptions import InvalidValueObject
+from apps.shared.domain.exceptions import InvalidValueObject
 
 _SMILES_ALLOWED_RE = re.compile(r"^[A-Za-z0-9@\+\-\=\#\/\\\.\%\(\)\[\]]+$")
 

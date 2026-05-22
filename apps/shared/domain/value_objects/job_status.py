@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
-from apps.shared.job_management_domain.domain.exceptions import InvalidValueObject
+from apps.shared.domain.exceptions import InvalidValueObject
 
 
 class JobStatusEnum(str, Enum):

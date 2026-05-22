@@ -5,7 +5,7 @@ from typing import Callable
 from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
-from apps.shared.job_management_domain.contracts.prediction_engine import PredictionEngine
+from apps.shared.contracts.prediction_engine import PredictionEngine
 
 _repository_factory: Callable[[], PredictionJobRepository] | None = None
 

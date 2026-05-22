@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 
-from apps.shared.job_management_domain.domain.exceptions import InvalidValueObject
+from apps.shared.domain.exceptions import InvalidValueObject
 
 _MODEL_VERSION_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 

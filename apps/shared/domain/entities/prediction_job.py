@@ -3,15 +3,15 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
-from apps.shared.job_management_domain.domain.exceptions import InvalidValueObject
-from apps.shared.job_management_domain.domain.value_objects.dataset import Dataset
-from apps.shared.job_management_domain.domain.value_objects.job_status import JobStatus, JobStatusEnum
-from apps.shared.job_management_domain.domain.value_objects.model_version import ModelVersion
-from apps.shared.job_management_domain.domain.value_objects.options import Options
-from apps.shared.job_management_domain.domain.value_objects.prediction_result_item import (
+from apps.shared.domain.exceptions import InvalidValueObject
+from apps.shared.domain.value_objects.dataset import Dataset
+from apps.shared.domain.value_objects.job_status import JobStatus, JobStatusEnum
+from apps.shared.domain.value_objects.model_version import ModelVersion
+from apps.shared.domain.value_objects.options import Options
+from apps.shared.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
-from apps.shared.job_management_domain.domain.value_objects.smiles import Smiles
+from apps.shared.domain.value_objects.smiles import Smiles
 
 
 def _utc_now() -> datetime:

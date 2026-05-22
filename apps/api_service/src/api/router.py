@@ -20,8 +20,8 @@ from apps.api_service.src.application.dto import (
     GetPredictionJobQuery,
     PredictionOptionsCmd,
 )
-from apps.shared.job_management_domain.domain.errors import PredictionJobNotFoundError
-from apps.shared.job_management_domain.domain.exceptions import InvalidValueObject
+from apps.shared.domain.errors import PredictionJobNotFoundError
+from apps.shared.domain.exceptions import InvalidValueObject
 
 router = APIRouter(prefix="/v1", tags=["job_management"])
 

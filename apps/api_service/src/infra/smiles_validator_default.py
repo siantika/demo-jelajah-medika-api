@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from apps.api_service.src.application.ports.smiles_validator import SmilesValidator
-from apps.shared.job_management_domain.domain.value_objects.smiles import Smiles
+from apps.shared.domain.value_objects.smiles import Smiles
 
 
 class DomainSmilesValidator(SmilesValidator):

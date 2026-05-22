@@ -3,7 +3,7 @@ import math
 import re
 from dataclasses import dataclass
 
-from apps.shared.job_management_domain.domain.exceptions import InvalidValueObject
+from apps.shared.domain.exceptions import InvalidValueObject
 
 _AMINO_ACID_PATTERN = re.compile(r"^[ACDEFGHIKLMNPQRSTVWYBXZUO]+$")
 

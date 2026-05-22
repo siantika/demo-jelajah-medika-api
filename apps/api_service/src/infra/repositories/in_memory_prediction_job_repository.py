@@ -7,7 +7,7 @@ from uuid import UUID
 from apps.api_service.src.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
-from apps.shared.job_management_domain.domain.entities.prediction_job import (
+from apps.shared.domain.entities.prediction_job import (
     PredictionJob,
 )
 

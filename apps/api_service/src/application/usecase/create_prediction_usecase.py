@@ -12,16 +12,16 @@ from apps.api_service.src.application.ports.prediction_job_repository import (
     PredictionJobRepository,
 )
 from apps.api_service.src.application.ports.smiles_validator import SmilesValidator
-from apps.shared.job_management_domain.domain.entities.prediction_job import (
+from apps.shared.domain.entities.prediction_job import (
     PredictionJob,
 )
-from apps.shared.job_management_domain.domain.exceptions import InvalidValueObject
-from apps.shared.job_management_domain.domain.value_objects.dataset import Dataset
-from apps.shared.job_management_domain.domain.value_objects.model_version import (
+from apps.shared.domain.exceptions import InvalidValueObject
+from apps.shared.domain.value_objects.dataset import Dataset
+from apps.shared.domain.value_objects.model_version import (
     ModelVersion,
 )
-from apps.shared.job_management_domain.domain.value_objects.options import Options
-from apps.shared.job_management_domain.domain.value_objects.smiles import Smiles
+from apps.shared.domain.value_objects.options import Options
+from apps.shared.domain.value_objects.smiles import Smiles
 
 
 @dataclass(frozen=True)
