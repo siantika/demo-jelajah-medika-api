@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from datetime import datetime
 from uuid import UUID
@@ -35,9 +37,7 @@ from apps.shared.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
 from apps.shared.domain.value_objects.smiles import Smiles
-from apps.shared.infra.db.models.prediction_jobs import (
-    prediction_jobs,
-)
+from apps.shared.infra.db.models.jobs import jobs
 
 
 class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
@@ -86,14 +86,14 @@ class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
 
     async def create(self, *, job: PredictionJob) -> None:
         """Persist a new PredictionJob.  Raises IntegrityError on duplicate id."""
-        stmt = insert(prediction_jobs).values(**self._to_row(job))
+        stmt = insert(jobs).values(**self._to_row(job))
         async with self._session_factory() as session:
             await session.execute(stmt)
             await session.commit()
 
     async def get_by_id(self, *, job_id: UUID) -> PredictionJob | None:
         """Return the job with the given id, or None if not found."""
-        stmt = select(prediction_jobs).where(prediction_jobs.c.id == job_id)
+        stmt = select(jobs).where(jobs.c.id == job_id)
         async with self._session_factory() as session:
             row = (await session.execute(stmt)).mappings().first()
         return self._from_row(dict(row)) if row is not None else None
@@ -114,15 +114,20 @@ class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
         }
         if result is not None:
             values["result"] = [
-                {"affinity": item.affinity, "target_sequence": item.target_sequence}
+                {
+                    "affinity": item.affinity,
+                    "sequence_target": item.target_sequence,
+                    "target_index": None,
+                }
                 for item in result
             ]
         if error is not None:
-            values["error"] = error
+            values["error_message"] = error
+            values["error_code"] = "PREDICTION_FAILED"
 
         stmt = (
-            update(prediction_jobs)
-            .where(prediction_jobs.c.id == job_id)
+            update(jobs)
+            .where(jobs.c.id == job_id)
             .values(**values)
         )
         async with self._session_factory() as session:
@@ -139,47 +144,78 @@ class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
 
     @staticmethod
     def _to_row(job: PredictionJob) -> dict:
+        status_map = {
+            JobStatusEnum.PENDING: "QUEUED",
+            JobStatusEnum.RUNNING: "PROCESSING",
+            JobStatusEnum.SUCCESS: "COMPLETED",
+            JobStatusEnum.FAILED: "FAILED",
+        }
         return {
             "id": job.id,
-            "smiles": str(job.smiles),
-            "dataset": str(job.dataset),
-            "top_k": job.options.top_k,
-            "return_sequence": job.options.return_sequence,
-            "model_version": str(job.model_version),
-            "status": job.status.value.value,
+            "type": "prediction",
+            "status": status_map[job.status.value],
+            "payload": {
+                "smiles": str(job.smiles),
+                "dataset": str(job.dataset),
+                "top_k": job.options.top_k,
+                "return_sequence": job.options.return_sequence,
+                "model_version": str(job.model_version),
+            },
             "result": [
                 {
                     "affinity": item.affinity,
-                    "target_sequence": item.target_sequence,
+                    "sequence_target": item.target_sequence,
+                    "target_index": None,
                 }
                 for item in job.result
             ],
-            "error": job.error,
+            "error_message": job.error,
+            "idempotency_key": str(job.id),
+            "request_hash": _build_request_hash(
+                smiles=str(job.smiles),
+                dataset=str(job.dataset),
+                top_k=job.options.top_k,
+                return_sequence=job.options.return_sequence,
+                model_version=str(job.model_version),
+            ),
+            "correlation_id": str(job.id),
             "created_at": job.created_at,
             "updated_at": job.updated_at,
         }
 
     @staticmethod
     def _from_row(row: dict) -> PredictionJob:
-        result_items = [
-            PredictionResultItem(
-                affinity=float(item["affinity"]),
-                target_sequence=str(item["target_sequence"]),
+        payload = row.get("payload") or {}
+        reverse_status_map = {
+            "QUEUED": JobStatusEnum.PENDING,
+            "PROCESSING": JobStatusEnum.RUNNING,
+            "COMPLETED": JobStatusEnum.SUCCESS,
+            "FAILED": JobStatusEnum.FAILED,
+            "CANCELLED": JobStatusEnum.FAILED,
+        }
+        result_items = []
+        for item in (row.get("result") or []):
+            sequence_target = item.get("sequence_target") or item.get("target_sequence")
+            if not sequence_target:
+                continue
+            result_items.append(
+                PredictionResultItem(
+                    affinity=float(item["affinity"]),
+                    target_sequence=str(sequence_target),
+                )
             )
-            for item in (row.get("result") or [])
-        ]
         return PredictionJob(
             id=UUID(str(row["id"])),
-            smiles=Smiles(str(row["smiles"])),
-            dataset=Dataset(str(row["dataset"])),
+            smiles=Smiles(str(payload["smiles"])),
+            dataset=Dataset(str(payload["dataset"])),
             options=Options(
-                top_k=int(row["top_k"]),
-                return_sequence=bool(row["return_sequence"]),
+                top_k=int(payload["top_k"]),
+                return_sequence=bool(payload["return_sequence"]),
             ),
-            model_version=ModelVersion(str(row["model_version"])),
-            status=JobStatus(JobStatusEnum(str(row["status"]))),
+            model_version=ModelVersion(str(payload["model_version"])),
+            status=JobStatus(reverse_status_map[str(row["status"])]),
             result=result_items,
-            error=row.get("error"),
+            error=row.get("error_message"),
             created_at=_as_datetime(row["created_at"]),
             updated_at=_as_datetime(row["updated_at"]),
         )
@@ -189,3 +225,24 @@ def _as_datetime(value: object) -> datetime:
     if isinstance(value, datetime):
         return value
     raise TypeError(f"Expected datetime, got {type(value)!r}")
+
+
+def _build_request_hash(
+    *,
+    smiles: str,
+    dataset: str,
+    top_k: int,
+    return_sequence: bool,
+    model_version: str,
+) -> str:
+    payload = {
+        "smiles": smiles.strip(),
+        "dataset_name": dataset,
+        "model_version": model_version,
+        "options": {
+            "top_k": top_k,
+            "return_sequences": return_sequence,
+        },
+    }
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
