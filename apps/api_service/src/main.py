@@ -23,7 +23,8 @@ from apps.api_service.src.infra.smiles_validator_default import (
     DomainSmilesValidator,
 )
 from apps.api_service.src.shared.database.session import db_session_dependency
-from apps.api_service.src.shared.logging.logger import StructlogLogger, setup_logger
+from apps.api_service.src.shared.logging.logger_config import setup_logger
+from apps.api_service.src.shared.logging.structlog_logger import StructlogLogger
 from apps.api_service.src.shared.settings.config import settings
 
 setup_logger(json_format=True, log_level="INFO")
