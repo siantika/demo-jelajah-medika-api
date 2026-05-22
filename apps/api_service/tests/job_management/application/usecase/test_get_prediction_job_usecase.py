@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -10,8 +11,8 @@ from apps.api_service.src.application.dto import (
 
 from apps.api_service.src.application.usecase.get_prediction_job_usecase import (
     GetPredictionJobUseCase,
-    PredictionJobNotFoundError,
 )
+from apps.shared.domain.errors import PredictionJobNotFoundError
 from apps.shared.domain.entities.prediction_job import (
     PredictionJob,
 )
@@ -30,7 +31,7 @@ class FakePredictionJobRepository:
     def __init__(self, jobs: dict[UUID, PredictionJob]):
         self.jobs = jobs
 
-    def get_by_id(self, *, job_id: UUID) -> PredictionJob | None:
+    async def find_by_id(self, *, job_id: UUID) -> PredictionJob | None:
         return self.jobs.get(job_id)
 
 
@@ -56,7 +57,7 @@ def test_get_prediction_job_returns_mapped_result() -> None:
     repo = FakePredictionJobRepository(jobs={job.id: job})
     usecase = GetPredictionJobUseCase(repository=repo)
 
-    result = usecase.execute(GetPredictionJobQuery(job_id=job.id))
+    result = asyncio.run(usecase.execute(GetPredictionJobQuery(job_id=job.id)))
 
     assert result.job_id == job.id
     assert result.status == "SUCCESS"
@@ -73,4 +74,4 @@ def test_get_prediction_job_raises_when_not_found() -> None:
     usecase = GetPredictionJobUseCase(repository=repo)
 
     with pytest.raises(PredictionJobNotFoundError):
-        usecase.execute(GetPredictionJobQuery(job_id=uuid4()))
+        asyncio.run(usecase.execute(GetPredictionJobQuery(job_id=uuid4())))
