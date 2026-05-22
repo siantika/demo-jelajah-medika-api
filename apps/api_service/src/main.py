@@ -7,8 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api_service.src.infra.job_queue_celery import (
-    CeleryJobQueue,
-    build_celery_app,
+    InProcessJobQueue,
 )
 from apps.api_service.src.infra.repositories.in_memory_prediction_job_repository import (
     InMemoryPredictionJobRepository,
@@ -39,7 +38,7 @@ async def lifespan(app: FastAPI):
         app.state.prediction_repository = SQLAlchemyPredictionJobRepository(
             database_url=settings.database_url
         )
-    app.state.job_queue = CeleryJobQueue(build_celery_app())
+    app.state.job_queue = InProcessJobQueue()
     app.state.smiles_validator = DomainSmilesValidator()
     yield
 
@@ -68,4 +67,4 @@ async def health_db(session: AsyncSession = Depends(db_session_dependency)):
 
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host=settings.host, port=settings.port, reload=True)
+    uvicorn.run("apps.api_service.src.main:app", host=settings.host, port=settings.port, reload=True)
