@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from uuid import UUID
 
 from fastapi import APIRouter, status
