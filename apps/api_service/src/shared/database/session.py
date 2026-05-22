@@ -28,3 +28,8 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
 async def db_session_dependency() -> AsyncIterator[AsyncSession]:
     async with get_db_session() as session:
         yield session
+
+
+async def close_db_engine():
+    # Close  connection pool gracefully
+    await engine.dispose()

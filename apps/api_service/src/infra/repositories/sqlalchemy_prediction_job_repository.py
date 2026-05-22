@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from datetime import datetime
 from uuid import UUID
 
@@ -12,20 +11,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
     AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
 )
 
 from apps.api_service.src.application.ports.prediction_job_repository import (
     IPredictionJobRepository,
 )
-from apps.api_service.src.shared.database.engine import engine as shared_engine
-from apps.api_service.src.shared.database.session import (
-    SessionFactory as shared_session_factory,
-)
-from apps.api_service.src.shared.settings.config import settings
 from apps.shared.domain.entities.prediction_job import (
     PredictionJob,
 )
@@ -46,71 +37,27 @@ from apps.shared.infra.db.models.jobs import jobs
 
 
 class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
-    """
-    Async SQLAlchemy implementation of PredictionJobRepository.
-
-    Lifecycle
-    ---------
-    The engine and connection pool are created once in __init__ and shared
-    across all operations.  Call ``await repo.dispose()`` (e.g. in an app
-    shutdown / lifespan handler) to cleanly close the pool.
-
-    Usage with FastAPI lifespan
-    ---------------------------
-    ```python
-    @asynccontextmanager
-    async def lifespan(app: FastAPI):
-        repo = SQLAlchemyPredictionJobRepository()
-        app.state.repo = repo
-        yield
-        await repo.dispose()
-    ```
-    """
-
-    def __init__(self, database_url: str | None = None) -> None:
-        url = database_url or os.getenv("DATABASE_URL")
-        if not url:
-            raise RuntimeError("DATABASE_URL is required for SQLAlchemyPredictionJobRepository")
-        if url == settings.database_url:
-            self._engine = shared_engine
-            self._session_factory = shared_session_factory
-            self._owns_engine = False
-            return
-
-        self._engine = create_async_engine(
-            url,
-            pool_pre_ping=True,
-            pool_size=10,
-            max_overflow=20,
-        )
-        self._session_factory = async_sessionmaker(
-            bind=self._engine,
-            class_=AsyncSession,
-            expire_on_commit=False,
-            autoflush=False,
-        )
-        self._owns_engine = True
+    def __init__(self, db: AsyncSession) -> None:
+        self._session = db
 
     # ------------------------------------------------------------------
     # Public interface (fully async)
     # ------------------------------------------------------------------
 
-    async def create(self, *, job: PredictionJob) -> None:
+    async def save(self, *, job: PredictionJob) -> None:
         """Persist a new PredictionJob.  Raises IntegrityError on duplicate id."""
         stmt = (
             insert(jobs)
             .values(**self._to_row(job))
             .on_conflict_do_nothing(index_elements=[jobs.c.id])
         )
-        async with self._session_factory() as session:
-            await session.execute(stmt)
-            await session.commit()
+        await self._session.execute(stmt)
+        await self._session.commit()
 
-    async def get_by_id(self, *, job_id: UUID) -> PredictionJob | None:
+    async def find_by_id(self, *, job_id: UUID) -> PredictionJob | None:
         """Return the job with the given id, or None if not found."""
         stmt = select(jobs).where(jobs.c.id == job_id)
-        async with self._session_factory() as session:
-            row = (await session.execute(stmt)).mappings().first()
+        row = (await self._session.execute(stmt)).mappings().first()
         return self._from_row(dict(row)) if row is not None else None
 
     async def update_status(
@@ -145,14 +92,8 @@ class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
             .where(jobs.c.id == job_id)
             .values(**values)
         )
-        async with self._session_factory() as session:
-            await session.execute(stmt)
-            await session.commit()
-
-    async def dispose(self) -> None:
-        """Dispose the connection pool.  Call once at application shutdown."""
-        if self._owns_engine:
-            await self._engine.dispose()
+        await self._session.execute(stmt)
+        await self._session.commit()
 
     # ------------------------------------------------------------------
     # Private helpers

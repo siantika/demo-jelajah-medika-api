@@ -63,7 +63,7 @@ class CreatePredictionJobUseCase:
         deterministic_job_id = uuid5(NAMESPACE_URL, request_hash)
 
         # Should not process a request with a same job
-        existing_job = self.repository.find_by_id(job_id=deterministic_job_id)
+        existing_job = await self.repository.find_by_id(job_id=deterministic_job_id)
         if existing_job is not None:
             return existing_job
         
@@ -80,7 +80,7 @@ class CreatePredictionJobUseCase:
         )
 
         # create and save prediction job to persitent layer
-        self.repository.save(job=prediction_job)
+        await self.repository.save(job=prediction_job)
         
         # Send job_id to queue. Let another services consume it [NOTE: for now it is disable]
         task_id = self.job_queue.enqueue_prediction(job_id=prediction_job.id)

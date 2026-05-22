@@ -22,7 +22,10 @@ from apps.api_service.src.infra.repositories.sqlalchemy_prediction_job_repositor
 from apps.api_service.src.infra.smiles_validator_default import (
     DomainSmilesValidator,
 )
-from apps.api_service.src.shared.database.session import db_session_dependency
+from apps.api_service.src.shared.database.session import (
+    close_db_engine,
+    db_session_dependency,
+)
 from apps.api_service.src.shared.logging.logger_config import setup_logger
 from apps.api_service.src.shared.logging.structlog_logger import StructlogLogger
 from apps.api_service.src.shared.settings.config import settings
@@ -33,16 +36,13 @@ logger = StructlogLogger("endpoint")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    backend = os.getenv("PREDICTION_REPOSITORY_BACKEND", "postgres").lower()
-    if backend == "inmemory":
-        app.state.prediction_repository = InMemoryPredictionJobRepository()
-    else:
-        app.state.prediction_repository = SQLAlchemyPredictionJobRepository(
-            database_url=settings.database_url
-        )
-    app.state.job_queue = InProcessJobQueue()
-    app.state.smiles_validator = DomainSmilesValidator()
-    yield
+    # no need bootstrap initialization
+    yield 
+    # When app is closed
+    # close db engine
+    logger.info("Closing database connection pool ...")
+    await close_db_engine()
+    logger.info("Database closed successfully")
 
 
 app = FastAPI(
@@ -50,7 +50,7 @@ app = FastAPI(
     version="1.0.0",
     description="Backend for drug target interaction",
     contact={"name": "sian", "email": "pawesisiantika98@gmail.com"},
-    lifespan=lifespan,
+    lifespan=lifespan
 )
 register_exception_handlers(app)
 app.include_router(job_management_router)

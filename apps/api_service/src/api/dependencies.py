@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api_service.src.application.ports.job_queue import IJobQueue
 from apps.api_service.src.application.ports.prediction_job_repository import (
@@ -15,19 +16,23 @@ from apps.api_service.src.application.usecase.create_prediction_usecase import (
 from apps.api_service.src.application.usecase.get_prediction_job_usecase import (
     GetPredictionJobUseCase,
 )
+from apps.api_service.src.infra.job_queue_celery import InProcessJobQueue
+from apps.api_service.src.infra.repositories.sqlalchemy_prediction_job_repository import (
+    SQLAlchemyPredictionJobRepository,
+)
+from apps.api_service.src.infra.smiles_validator_default import DomainSmilesValidator
+from apps.api_service.src.shared.database.session import db_session_dependency
 
+def get_repository(
+    db: Annotated[AsyncSession, Depends(db_session_dependency)],
+) -> IPredictionJobRepository:
+    return SQLAlchemyPredictionJobRepository(db=db)
 
-def get_repository(request: Request) -> IPredictionJobRepository:
-    return request.app.state.prediction_repository
+def get_job_queue() -> IJobQueue:
+    return InProcessJobQueue()
 
-
-def get_job_queue(request: Request) -> IJobQueue:
-    return request.app.state.job_queue
-
-
-def get_smiles_validator(request: Request) -> ISmilesValidator:
-    return request.app.state.smiles_validator
-
+def get_smiles_validator() -> ISmilesValidator:
+    return DomainSmilesValidator()
 
 def get_create_prediction_usecase(
     repository: Annotated[IPredictionJobRepository, Depends(get_repository)],
