@@ -1,4 +1,3 @@
-import os
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -10,18 +9,6 @@ from apps.api_service.src.api import (
     router as job_management_router,
 )
 from apps.api_service.src.api.exception_handlers import register_exception_handlers
-from apps.api_service.src.infra.job_queue_celery import (
-    InProcessJobQueue,
-)
-from apps.api_service.src.infra.repositories.in_memory_prediction_job_repository import (
-    InMemoryPredictionJobRepository,
-)
-from apps.api_service.src.infra.repositories.sqlalchemy_prediction_job_repository import (
-    SQLAlchemyPredictionJobRepository,
-)
-from apps.api_service.src.infra.smiles_validator_default import (
-    DomainSmilesValidator,
-)
 from apps.api_service.src.shared.database.session import (
     close_db_engine,
     db_session_dependency,

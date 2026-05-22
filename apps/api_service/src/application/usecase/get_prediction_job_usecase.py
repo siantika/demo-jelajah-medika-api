@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import inspect
-
 from apps.api_service.src.application.dto import (
     GetJobStatusResult,
     GetPredictionJobQuery,
