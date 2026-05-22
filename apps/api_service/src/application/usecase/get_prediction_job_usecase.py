@@ -7,13 +7,13 @@ from apps.api_service.src.application.dto import (
     GetPredictionJobQuery,
 )
 from apps.api_service.src.application.ports.prediction_job_repository import (
-    PredictionJobRepository,
+    IPredictionJobRepository,
 )
 from apps.shared.domain.errors import PredictionJobNotFoundError
 
 
 class GetPredictionJobUseCase:
-    def __init__(self, repository: PredictionJobRepository):
+    def __init__(self, repository: IPredictionJobRepository):
         self.repository = repository
 
     def execute(self, query: GetPredictionJobQuery) -> GetJobStatusResult:

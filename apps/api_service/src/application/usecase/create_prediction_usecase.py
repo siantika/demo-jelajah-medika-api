@@ -11,11 +11,11 @@ from apps.api_service.src.application.dto import (
     CreatePredictionCmd,
     PredictionOptionsCmd,
 )
-from apps.api_service.src.application.ports.job_queue import JobQueue
+from apps.api_service.src.application.ports.job_queue import IJobQueue
 from apps.api_service.src.application.ports.prediction_job_repository import (
-    PredictionJobRepository,
+    IPredictionJobRepository,
 )
-from apps.api_service.src.application.ports.smiles_validator import SmilesValidator
+from apps.api_service.src.application.ports.smiles_validator import ISmilesValidator
 from apps.shared.domain.entities.prediction_job import (
     PredictionJob,
 )
@@ -38,15 +38,15 @@ class CreatePredictionResult:
 class CreatePredictionJobUseCase:
     def __init__(
         self,
-        job_queue: JobQueue,
-        smiles_validator: SmilesValidator,
-        repository: PredictionJobRepository,
+        job_queue: IJobQueue,
+        smiles_validator: ISmilesValidator,
+        repository: IPredictionJobRepository,
     ):
         self.job_queue = job_queue
         self.smiles_validator = smiles_validator
         self.repository = repository
 
-    def execute(self, cmd: CreatePredictionCmd) -> CreatePredictionResult:
+    async def execute(self, cmd: CreatePredictionCmd) -> PredictionJob:
         # validate smiles input 
         if not self.smiles_validator.is_valid(smiles=cmd.smiles):
             raise InvalidValueObject(
@@ -58,20 +58,16 @@ class CreatePredictionJobUseCase:
         # create value object for options field
         options_cmd = cmd.options or PredictionOptionsCmd()
         
-        # It uses for idempotency resquest for same request
+        # Generate a deterministic job ID for idempotent duplicate requests.
         request_hash = _build_request_hash(cmd=cmd, options_cmd=options_cmd)
         deterministic_job_id = uuid5(NAMESPACE_URL, request_hash)
 
-        # job should not process the same request
-        existing_job = self.repository.get_by_id(job_id=deterministic_job_id)
+        # Should not process a request with a same job
+        existing_job = self.repository.find_by_id(job_id=deterministic_job_id)
         if existing_job is not None:
-            return CreatePredictionResult(
-                job_id=existing_job.id,
-                task_id=str(existing_job.id),
-                created_at=existing_job.created_at,
-            )
+            return existing_job
         
-        # Create prediction Entity of prediction job
+        # Create prediction job entity
         prediction_job = PredictionJob(
             id=deterministic_job_id,
             smiles=Smiles(cmd.smiles),
@@ -84,62 +80,15 @@ class CreatePredictionJobUseCase:
         )
 
         # create and save prediction job to persitent layer
-        self.repository.create(job=prediction_job)
+        self.repository.save(job=prediction_job)
         
-        # Produce job_id to queue. Let another service consume it
+        # Send job_id to queue. Let another services consume it [NOTE: for now it is disable]
         task_id = self.job_queue.enqueue_prediction(job_id=prediction_job.id)
         
         # return result
-        return CreatePredictionResult(
-            job_id=prediction_job.id,
-            task_id=task_id,
-            created_at=prediction_job.created_at,
-        )
+        return prediction_job
 
-    async def execute_async(self, cmd: CreatePredictionCmd) -> CreatePredictionResult:
-        if not self.smiles_validator.is_valid(smiles=cmd.smiles):
-            raise InvalidValueObject(
-                name="Smiles",
-                reason="SMILES is not chemically valid",
-                value=cmd.smiles,
-            )
-
-        options_cmd = cmd.options or PredictionOptionsCmd()
-        request_hash = _build_request_hash(cmd=cmd, options_cmd=options_cmd)
-        deterministic_job_id = uuid5(NAMESPACE_URL, request_hash)
-        existing_job_result = self.repository.get_by_id(job_id=deterministic_job_id)
-        existing_job = await existing_job_result if inspect.isawaitable(existing_job_result) else existing_job_result
-        if existing_job is not None:
-            return CreatePredictionResult(
-                job_id=existing_job.id,
-                task_id=str(existing_job.id),
-                created_at=existing_job.created_at,
-            )
-
-        prediction_job = PredictionJob(
-            id=deterministic_job_id,
-            smiles=Smiles(cmd.smiles),
-            dataset=Dataset(cmd.dataset_name),
-            options=Options(
-                top_k=options_cmd.top_k,
-                return_sequence=options_cmd.return_sequences,
-            ),
-            model_version=ModelVersion(cmd.model_version),
-        )
-
-        create_result = self.repository.create(job=prediction_job)
-        if inspect.isawaitable(create_result):
-            await create_result
-
-        task_id_result = self.job_queue.enqueue_prediction(job_id=prediction_job.id)
-        task_id = await task_id_result if inspect.isawaitable(task_id_result) else task_id_result
-        return CreatePredictionResult(
-            job_id=prediction_job.id,
-            task_id=task_id,
-            created_at=prediction_job.created_at,
-        )
-
-
+# For now, the implementation is acceptable here. Next, we can move it in infra layer and access using Interface located in ports folder
 def _build_request_hash(*, cmd: CreatePredictionCmd, options_cmd: PredictionOptionsCmd) -> str:
     canonical_payload = {
         "smiles": cmd.smiles.strip(),

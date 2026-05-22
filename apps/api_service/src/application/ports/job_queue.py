@@ -4,5 +4,5 @@ from typing import Protocol
 from uuid import UUID
 
 
-class JobQueue(Protocol):
+class IJobQueue(Protocol):
     def enqueue_prediction(self, *, job_id: UUID) -> str: ...

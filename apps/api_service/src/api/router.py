@@ -23,7 +23,7 @@ from apps.api_service.src.application.dto import (
 from apps.shared.domain.errors import PredictionJobNotFoundError
 from apps.shared.domain.exceptions import InvalidValueObject
 
-router = APIRouter(prefix="/api/v1", tags=["job_management"])
+router = APIRouter(prefix="/api/v1", tags=["api_service"])
 
 
 @router.post("/predictions", response_model=PredictionCreateResponse, status_code=status.HTTP_202_ACCEPTED)
@@ -32,7 +32,7 @@ async def create_prediction(
     usecase: CreatePredictionUseCaseDep,
 ) -> PredictionCreateResponse:
     try:
-        execution_result = usecase.execute_async(
+        result =  await usecase.execute(
             CreatePredictionCmd(
                 smiles=request.smiles,
                 dataset_name=request.dataset_name,
@@ -43,15 +43,15 @@ async def create_prediction(
                 ),
             )
         )
-        result = await execution_result if inspect.isawaitable(execution_result) else execution_result
+       
     except InvalidValueObject as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     return PredictionCreateResponse(
-        job_id=result.job_id,
-        status="PENDING",
+        job_id=result.id,
+        status=result.status.value,
         created_at=result.created_at,
-        status_url=f"/api/v1/jobs/{result.job_id}",
+        status_url=f"/api/v1/jobs/{result.id}",
         model_version=request.model_version,
     )
 

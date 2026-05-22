@@ -6,6 +6,9 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.api_service.src.api import (
+    router as job_management_router,
+)
 from apps.api_service.src.infra.job_queue_celery import (
     InProcessJobQueue,
 )
@@ -17,9 +20,6 @@ from apps.api_service.src.infra.repositories.sqlalchemy_prediction_job_repositor
 )
 from apps.api_service.src.infra.smiles_validator_default import (
     DomainSmilesValidator,
-)
-from apps.api_service.src.api import (
-    router as job_management_router,
 )
 from apps.api_service.src.shared.database.session import db_session_dependency
 from apps.api_service.src.shared.logging.logger import StructlogLogger, setup_logger

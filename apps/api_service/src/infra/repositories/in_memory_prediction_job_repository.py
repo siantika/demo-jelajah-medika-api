@@ -5,14 +5,14 @@ from threading import RLock
 from uuid import UUID
 
 from apps.api_service.src.application.ports.prediction_job_repository import (
-    PredictionJobRepository,
+    IPredictionJobRepository,
 )
 from apps.shared.domain.entities.prediction_job import (
     PredictionJob,
 )
 
 
-class InMemoryPredictionJobRepository(PredictionJobRepository):
+class InMemoryPredictionJobRepository(IPredictionJobRepository):
     def __init__(self) -> None:
         self._jobs: dict[UUID, PredictionJob] = {}
         self._lock = RLock()

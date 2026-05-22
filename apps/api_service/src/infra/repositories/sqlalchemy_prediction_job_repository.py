@@ -19,8 +19,13 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from apps.api_service.src.application.ports.prediction_job_repository import (
-    PredictionJobRepository,
+    IPredictionJobRepository,
 )
+from apps.api_service.src.shared.database.engine import engine as shared_engine
+from apps.api_service.src.shared.database.session import (
+    SessionFactory as shared_session_factory,
+)
+from apps.api_service.src.shared.settings.config import settings
 from apps.shared.domain.entities.prediction_job import (
     PredictionJob,
 )
@@ -40,7 +45,7 @@ from apps.shared.domain.value_objects.smiles import Smiles
 from apps.shared.infra.db.models.jobs import jobs
 
 
-class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
+class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
     """
     Async SQLAlchemy implementation of PredictionJobRepository.
 
@@ -66,11 +71,16 @@ class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
         url = database_url or os.getenv("DATABASE_URL")
         if not url:
             raise RuntimeError("DATABASE_URL is required for SQLAlchemyPredictionJobRepository")
+        if url == settings.database_url:
+            self._engine = shared_engine
+            self._session_factory = shared_session_factory
+            self._owns_engine = False
+            return
 
-        self._engine: AsyncEngine = create_async_engine(
+        self._engine = create_async_engine(
             url,
-            pool_pre_ping=True,   # verify connections before use
-            pool_size=10,         # tune to your workload
+            pool_pre_ping=True,
+            pool_size=10,
             max_overflow=20,
         )
         self._session_factory = async_sessionmaker(
@@ -79,6 +89,7 @@ class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
             expire_on_commit=False,
             autoflush=False,
         )
+        self._owns_engine = True
 
     # ------------------------------------------------------------------
     # Public interface (fully async)
@@ -140,7 +151,8 @@ class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
 
     async def dispose(self) -> None:
         """Dispose the connection pool.  Call once at application shutdown."""
-        await self._engine.dispose()
+        if self._owns_engine:
+            await self._engine.dispose()
 
     # ------------------------------------------------------------------
     # Private helpers
