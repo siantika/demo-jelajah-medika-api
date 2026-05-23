@@ -7,9 +7,13 @@ import os
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
     PredictionJobRepository,
@@ -41,25 +45,40 @@ class SQLAlchemyPredictionJobRepository(PredictionJobRepository):
         self._database_url = url
         self._ensure_engine(url)
 
-    def save(self, *, job: PredictionJob) -> None:
-        asyncio.run(self._save(job=job))
-
-    def get_by_id(self, *, job_id: UUID) -> PredictionJob | None:
-        return asyncio.run(self._get_by_id(job_id=job_id))
-
-    async def _save(self, *, job: PredictionJob) -> None:
-        payload = self._to_row(job)
-        stmt = insert(jobs).values(**payload)
-        upsert_stmt = stmt.on_conflict_do_update(
-            index_elements=[jobs.c.id],
-            set_=payload,
+    async def save(self, *, job: PredictionJob) -> None:
+        stmt = (
+            update(jobs)
+            .where(jobs.c.id == job.id)
+            .values(
+                status=self._to_db_status(job.status.value),
+                result=[
+                    {
+                        "affinity": item.affinity,
+                        "sequence_target": item.target_sequence,
+                        "target_index": None,
+                    }
+                    for item in job.result
+                ],
+                error_message=job.error,
+                updated_at=job.updated_at,
+            )
         )
         session_factory = self._session_factories[self._database_url]
         async with session_factory() as session:
-            await session.execute(upsert_stmt)
+            await session.execute(stmt)
             await session.commit()
 
-    async def _get_by_id(self, *, job_id: UUID) -> PredictionJob | None:
+    @staticmethod
+    def _to_db_status(status: JobStatusEnum) -> str:
+        status_map = {
+            JobStatusEnum.PENDING: "QUEUED",
+            JobStatusEnum.RUNNING: "PROCESSING",
+            JobStatusEnum.SUCCESS: "COMPLETED",
+            JobStatusEnum.FAILED: "FAILED",
+        }
+        return status_map[status]
+
+    async def find_by_id(self, *, job_id: UUID) -> PredictionJob | None:
         stmt = select(jobs).where(jobs.c.id == job_id)
         session_factory = self._session_factories[self._database_url]
         async with session_factory() as session:
