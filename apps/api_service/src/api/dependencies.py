@@ -16,12 +16,12 @@ from apps.api_service.src.application.usecase.create_prediction_usecase import (
 from apps.api_service.src.application.usecase.get_prediction_job_usecase import (
     GetPredictionJobUseCase,
 )
-from apps.api_service.src.infra.job_queue_celery import InProcessJobQueue
 from apps.api_service.src.infra.repositories.sqlalchemy_prediction_job_repository import (
     SQLAlchemyPredictionJobRepository,
 )
 from apps.api_service.src.infra.smiles_validator_default import DomainSmilesValidator
 from apps.api_service.src.shared.database.session import db_session_dependency
+
 
 def get_repository(
     db: Annotated[AsyncSession, Depends(db_session_dependency)],
@@ -29,7 +29,7 @@ def get_repository(
     return SQLAlchemyPredictionJobRepository(db=db)
 
 def get_job_queue() -> IJobQueue:
-    return InProcessJobQueue()
+    pass # return InProcessJobQueue()
 
 def get_smiles_validator() -> ISmilesValidator:
     return DomainSmilesValidator()
