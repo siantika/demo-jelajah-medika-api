@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     host: str
     port: int
     database_url: str
+    redis_url: str = "redis://localhost:6379/0"
 
     model_config = ConfigDict(
         env_file=".env",

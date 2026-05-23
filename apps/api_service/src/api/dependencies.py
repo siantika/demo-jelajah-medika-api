@@ -16,11 +16,14 @@ from apps.api_service.src.application.usecase.create_prediction_usecase import (
 from apps.api_service.src.application.usecase.get_prediction_job_usecase import (
     GetPredictionJobUseCase,
 )
+from apps.api_service.src.infra.queue.redis_job_queue import RedisJobQueue
 from apps.api_service.src.infra.repositories.sqlalchemy_prediction_job_repository import (
     SQLAlchemyPredictionJobRepository,
 )
 from apps.api_service.src.infra.smiles_validator_default import DomainSmilesValidator
 from apps.api_service.src.shared.database.session import db_session_dependency
+from apps.api_service.src.shared.queue import queues
+from apps.api_service.src.shared.settings.config import settings
 
 
 def get_repository(
@@ -29,7 +32,10 @@ def get_repository(
     return SQLAlchemyPredictionJobRepository(db=db)
 
 def get_job_queue() -> IJobQueue:
-    pass # return InProcessJobQueue()
+    return RedisJobQueue(
+        redis_url=settings.redis_url,
+        queue_key=queues.MLQueue.QUEUED,
+    )
 
 def get_smiles_validator() -> ISmilesValidator:
     return DomainSmilesValidator()

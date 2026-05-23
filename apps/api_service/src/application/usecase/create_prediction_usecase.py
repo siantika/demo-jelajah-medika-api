@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import inspect
 import json
 from dataclasses import dataclass
 from datetime import datetime
@@ -40,11 +39,12 @@ class CreatePredictionJobUseCase:
         self,
         job_queue: IJobQueue,
         smiles_validator: ISmilesValidator,
-        repository: IPredictionJobRepository,
+        repository: IPredictionJobRepository
     ):
         self.job_queue = job_queue
         self.smiles_validator = smiles_validator
         self.repository = repository
+
 
     async def execute(self, cmd: CreatePredictionCmd) -> PredictionJob:
         # validate smiles input 
@@ -82,8 +82,8 @@ class CreatePredictionJobUseCase:
         # create and save prediction job to persitent layer
         await self.repository.save(job=prediction_job)
         
-        # Send job_id to queue. Let another services consume it [NOTE: for now it is disable]
-        task_id = self.job_queue.enqueue_prediction(job_id=prediction_job.id)
+        # Send job_id to ML queue. Let another services consume it 
+        await self.job_queue.enqueue_prediction(job_id=prediction_job.id)
         
         # return result
         return prediction_job
