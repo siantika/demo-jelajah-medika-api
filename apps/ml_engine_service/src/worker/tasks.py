@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from uuid import UUID
 
 from apps.ml_engine_service.src.application.usecase.run_prediction_job_usecase import (
@@ -17,4 +18,4 @@ def run_prediction_job(self, *, job_id: str) -> None:
         repository=get_repository(),
         prediction_engine=get_prediction_engine(),
     )
-    usecase.execute(RunPredictionJobCmd(job_id=UUID(job_id)))
+    asyncio.run(usecase.execute(RunPredictionJobCmd(job_id=UUID(job_id))))

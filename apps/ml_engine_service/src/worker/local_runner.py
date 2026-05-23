@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 import argparse
-from uuid import uuid4
+import asyncio
+import os
+from pathlib import Path
+from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from apps.ml_engine_service.src.application.usecase.run_prediction_job_usecase import (
     RunPredictionJobCmd,
@@ -13,14 +18,9 @@ from apps.ml_engine_service.src.infra.integrations.gnn_predictor import (
 from apps.ml_engine_service.src.infra.repositories.sqlalchemy_prediction_job_repository import (
     SQLAlchemyPredictionJobRepository,
 )
-from apps.shared.domain.entities.prediction_job import PredictionJob
-from apps.shared.domain.value_objects.dataset import Dataset
-from apps.shared.domain.value_objects.model_version import ModelVersion
-from apps.shared.domain.value_objects.options import Options
 from apps.shared.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
-from apps.shared.domain.value_objects.smiles import Smiles
 
 
 class DummyPredictionEngine:
@@ -48,51 +48,70 @@ def _parse_args() -> argparse.Namespace:
         default="/home/sian/sian/projects/jelajah_medika/api/prod",
         help="Root directory containing static/models and static/data",
     )
-    parser.add_argument("--dataset", default="KIBA", choices=["KIBA", "DAVIS"])
-    parser.add_argument("--smiles", default="CCO")
-    parser.add_argument("--top-k", type=int, default=5)
+    parser.add_argument("--job-id", required=True, help="Existing job ID in jobs table")
     return parser.parse_args()
 
 
-def main() -> None:
+def _load_database_url() -> str:
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return database_url
+
+    env_file = Path(".env")
+    if env_file.exists():
+        for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            if key.strip().upper() == "DATABASE_URL":
+                parsed = value.strip().strip('"').strip("'")
+                if parsed:
+                    return parsed
+
+    raise RuntimeError("DATABASE_URL is required (env var or .env at project root)")
+
+
+async def _main() -> None:
     args = _parse_args()
-    repository = SQLAlchemyPredictionJobRepository()
-    if args.mode == "real":
-        engine = GNNPredictionEngine(
-            assets_root=args.assets_root,
-            args={
-                "features": 40,
-                "GNN_depth": 3,
-                "MLP_depth": 2,
-                "mode": "regression",
-            },
-        )
-        model_version = "gnn_v1"
-    else:
-        engine = DummyPredictionEngine()
-        model_version = "gnn-1.0.0"
-    usecase = RunPredictionJobUseCase(repository=repository, prediction_engine=engine)
+    database_url = _load_database_url()
 
-    job = PredictionJob(
-        id=uuid4(),
-        smiles=Smiles(args.smiles),
-        dataset=Dataset(args.dataset),
-        options=Options(top_k=args.top_k, return_sequence=True),
-        model_version=ModelVersion(model_version),
+    engine_db = create_async_engine(database_url, pool_pre_ping=True)
+    session_factory = async_sessionmaker(
+        bind=engine_db,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
     )
-    repository.save(job=job)
+    async with session_factory() as session:
+        repository = SQLAlchemyPredictionJobRepository(db=session)
 
-    usecase.execute(RunPredictionJobCmd(job_id=job.id))
-    updated_job = repository.get_by_id(job_id=job.id)
-    if updated_job is None:
-        raise RuntimeError("Job was not found after execution")
+        if args.mode == "real":
+            engine = GNNPredictionEngine(
+                assets_root=args.assets_root,
+                args={
+                    "features": 40,
+                    "GNN_depth": 3,
+                    "MLP_depth": 2,
+                    "mode": "regression",
+                },
+            )
+        else:
+            engine = DummyPredictionEngine()
+        usecase = RunPredictionJobUseCase(repository=repository, prediction_engine=engine)
 
-    print(f"job_id={updated_job.id}")
-    print(f"status={updated_job.status.value.value}")
-    print(f"result_count={len(updated_job.result)}")
-    for idx, item in enumerate(updated_job.result, start=1):
-        print(f"{idx}. affinity={item.affinity} target_sequence={item.target_sequence}")
+        await usecase.execute(RunPredictionJobCmd(job_id=UUID(args.job_id)))
+        updated_job = await repository.find_by_id(job_id=UUID(args.job_id))
+        if updated_job is None:
+            raise RuntimeError("Job was not found after execution")
+
+        print(f"job_id={updated_job.id}")
+        print(f"status={updated_job.status.value.value}")
+        print(f"result_count={len(updated_job.result)}")
+        for idx, item in enumerate(updated_job.result, start=1):
+            print(f"{idx}. affinity={item.affinity} target_sequence={item.target_sequence}")
+    await engine_db.dispose()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(_main())

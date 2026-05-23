@@ -17,13 +17,13 @@ class RunPredictionJobUseCase:
         self.repository = repository
         self.prediction_engine = prediction_engine
 
-    def execute(self, cmd: RunPredictionJobCmd) -> None:
-        job = self.repository.find_by_id(job_id=cmd.job_id)
+    async def execute(self, cmd: RunPredictionJobCmd) -> None:
+        job = await self.repository.find_by_id(job_id=cmd.job_id)
         if job is None:
             raise PredictionJobNotFoundError(job_id=cmd.job_id)
 
         job.mark_running()
-        self.repository.save(job=job)
+        await self.repository.save(job=job)
 
         try:
             prediction_result = self.prediction_engine.predict(
@@ -34,8 +34,8 @@ class RunPredictionJobUseCase:
                 return_sequences=job.options.return_sequence,
             )
             job.mark_success(prediction_result)
-            self.repository.save(job=job)
+            await self.repository.save(job=job)
         except Exception as exc:
             job.mark_failed(str(exc))
-            self.repository.save(job=job)
+            await self.repository.save(job=job)
             raise
