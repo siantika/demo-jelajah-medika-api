@@ -10,8 +10,8 @@ from apps.ml_engine_service.src.application.usecase.run_prediction_job_usecase i
 from apps.ml_engine_service.src.infra.integrations.gnn_predictor import (
     GNNPredictionEngine,
 )
-from apps.ml_engine_service.src.infra.repositories.in_memory_prediction_job_repository import (
-    InMemoryPredictionJobRepository,
+from apps.ml_engine_service.src.infra.repositories.sqlalchemy_prediction_job_repository import (
+    SQLAlchemyPredictionJobRepository,
 )
 from apps.shared.domain.entities.prediction_job import PredictionJob
 from apps.shared.domain.value_objects.dataset import Dataset
@@ -56,7 +56,7 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
-    repository = InMemoryPredictionJobRepository()
+    repository = SQLAlchemyPredictionJobRepository()
     if args.mode == "real":
         engine = GNNPredictionEngine(
             assets_root=args.assets_root,

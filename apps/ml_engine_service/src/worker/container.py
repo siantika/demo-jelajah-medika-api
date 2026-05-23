@@ -3,19 +3,19 @@ from __future__ import annotations
 from typing import Callable
 
 from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
-    PredictionJobRepository,
+    IPredictionJobRepository,
 )
 from apps.shared.contracts.prediction_engine import PredictionEngine
 
-_repository_factory: Callable[[], PredictionJobRepository] | None = None
+_repository_factory: Callable[[], IPredictionJobRepository] | None = None
 
 
-def configure_repository_factory(factory: Callable[[], PredictionJobRepository]) -> None:
+def configure_repository_factory(factory: Callable[[], IPredictionJobRepository]) -> None:
     global _repository_factory
     _repository_factory = factory
 
 
-def get_repository() -> PredictionJobRepository:
+def get_repository() -> IPredictionJobRepository:
     if _repository_factory is None:
         raise RuntimeError(
             "PredictionJobRepository factory is not configured for worker. "

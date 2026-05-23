@@ -1,31 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from uuid import UUID
-
-from apps.shared.contracts.prediction_engine import PredictionEngine
 from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
-    PredictionJobRepository,
+    IPredictionJobRepository,
 )
+from apps.ml_engine_service.src.application.usecase.dto import RunPredictionJobCmd
+from apps.shared.contracts.prediction_engine import PredictionEngine
 from apps.shared.domain.errors import PredictionJobNotFoundError
-
-
-@dataclass(frozen=True)
-class RunPredictionJobCmd:
-    job_id: UUID
 
 
 class RunPredictionJobUseCase:
     def __init__(
         self,
-        repository: PredictionJobRepository,
+        repository: IPredictionJobRepository,
         prediction_engine: PredictionEngine,
     ):
         self.repository = repository
         self.prediction_engine = prediction_engine
 
     def execute(self, cmd: RunPredictionJobCmd) -> None:
-        job = self.repository.get_by_id(job_id=cmd.job_id)
+        job = self.repository.find_by_id(job_id=cmd.job_id)
         if job is None:
             raise PredictionJobNotFoundError(job_id=cmd.job_id)
 
