@@ -5,7 +5,8 @@ from apps.ml_engine_service.src.application.ports.prediction_job_repository impo
 )
 from apps.ml_engine_service.src.application.usecase.dto import RunPredictionJobCmd
 from apps.shared.contracts.prediction_engine import PredictionEngine
-from apps.shared.domain.errors import PredictionJobNotFoundError
+from apps.shared.domain.entities.prediction_job import PredictionJob
+from apps.shared.domain.errors import MLInferenceError, PredictionJobNotFoundError
 
 
 class RunPredictionJobUseCase:
@@ -13,11 +14,13 @@ class RunPredictionJobUseCase:
         self,
         repository: IPredictionJobRepository,
         prediction_engine: PredictionEngine,
+        
     ):
         self.repository = repository
         self.prediction_engine = prediction_engine
+       
 
-    async def execute(self, cmd: RunPredictionJobCmd) -> None:
+    async def execute(self, cmd: RunPredictionJobCmd) -> PredictionJob:
         job = await self.repository.find_by_id(job_id=cmd.job_id)
         if job is None:
             raise PredictionJobNotFoundError(job_id=cmd.job_id)
@@ -34,8 +37,11 @@ class RunPredictionJobUseCase:
                 return_sequences=job.options.return_sequence,
             )
             job.mark_success(prediction_result)
+        except Exception as err:
+            job.mark_failed(str(err))
             await self.repository.save(job=job)
-        except Exception as exc:
-            job.mark_failed(str(exc))
-            await self.repository.save(job=job)
-            raise
+            raise MLInferenceError(str(err))
+
+        await self.repository.save(job=job)
+
+        return job

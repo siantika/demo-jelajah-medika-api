@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+import asyncio
 from uuid import UUID, uuid4
 
 import pytest
 
+from apps.ml_engine_service.src.application.usecase.run_prediction_job_usecase import (
+    PredictionJobNotFoundError,
+    RunPredictionJobCmd,
+    RunPredictionJobUseCase,
+)
+from apps.shared.domain.errors import MLInferenceError
 from apps.shared.domain.entities.prediction_job import PredictionJob
 from apps.shared.domain.value_objects.dataset import Dataset
 from apps.shared.domain.value_objects.job_status import JobStatusEnum
@@ -13,11 +20,6 @@ from apps.shared.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
 from apps.shared.domain.value_objects.smiles import Smiles
-from apps.ml_engine_service.src.application.usecase.run_prediction_job_usecase import (
-    PredictionJobNotFoundError,
-    RunPredictionJobCmd,
-    RunPredictionJobUseCase,
-)
 
 
 class FakePredictionJobRepository:
@@ -25,10 +27,10 @@ class FakePredictionJobRepository:
         self.jobs = jobs
         self.saved_jobs: list[PredictionJob] = []
 
-    def get_by_id(self, *, job_id: UUID) -> PredictionJob | None:
+    async def find_by_id(self, *, job_id: UUID) -> PredictionJob | None:
         return self.jobs.get(job_id)
 
-    def save(self, *, job: PredictionJob) -> None:
+    async def save(self, *, job: PredictionJob) -> None:
         self.jobs[job.id] = job
         self.saved_jobs.append(job)
 
@@ -56,7 +58,7 @@ class FailingEngine:
         top_k: int,
         return_sequences: bool,
     ) -> list[PredictionResultItem]:
-        raise RuntimeError("model inference failed")
+        raise MLInferenceError("model inference failed")
 
 
 def _make_pending_job() -> PredictionJob:
@@ -77,7 +79,7 @@ def test_run_prediction_job_marks_success_and_persists() -> None:
         prediction_engine=SuccessfulEngine(),
     )
 
-    usecase.execute(RunPredictionJobCmd(job_id=job.id))
+    asyncio.run(usecase.execute(RunPredictionJobCmd(job_id=job.id)))
 
     updated = repository.jobs[job.id]
     assert updated.status.value == JobStatusEnum.SUCCESS
@@ -94,8 +96,8 @@ def test_run_prediction_job_marks_failed_when_engine_raises() -> None:
         prediction_engine=FailingEngine(),
     )
 
-    with pytest.raises(RuntimeError):
-        usecase.execute(RunPredictionJobCmd(job_id=job.id))
+    with pytest.raises(MLInferenceError):
+        asyncio.run(usecase.execute(RunPredictionJobCmd(job_id=job.id)))
 
     updated = repository.jobs[job.id]
     assert updated.status.value == JobStatusEnum.FAILED
@@ -112,4 +114,4 @@ def test_run_prediction_job_raises_not_found() -> None:
     )
 
     with pytest.raises(PredictionJobNotFoundError):
-        usecase.execute(RunPredictionJobCmd(job_id=uuid4()))
+        asyncio.run(usecase.execute(RunPredictionJobCmd(job_id=uuid4())))
