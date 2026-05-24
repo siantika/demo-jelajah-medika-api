@@ -32,7 +32,6 @@ class WorkerSettings:
     queue_key: str
     assets_root: str
     poll_interval: float
-    on_error: str
     gnn_features: int
     gnn_depth: int
     mlp_depth: int
@@ -75,11 +74,6 @@ def load_worker_settings() -> WorkerSettings:
     if not database_url:
         raise RuntimeError("DATABASE_URL is required (env var or .env at project root)")
 
-    on_error = _read_setting(env_values, "ML_WORKER_ON_ERROR", default="requeue")
-    assert on_error is not None
-    if on_error not in ("requeue", "dlq"):
-        raise RuntimeError("ML_WORKER_ON_ERROR must be one of: requeue, dlq")
-
     poll_interval_raw = _read_setting(
         env_values,
         "ML_WORKER_POLL_INTERVAL",
@@ -99,7 +93,6 @@ def load_worker_settings() -> WorkerSettings:
         or MLQueue.QUEUED,
         assets_root=_read_setting(env_values, "ML_ASSETS_ROOT", default=".") or ".",
         poll_interval=float(poll_interval_raw),
-        on_error=on_error,
         gnn_features=int(_read_setting(env_values, "ML_GNN_FEATURES", default="40") or "40"),
         gnn_depth=int(_read_setting(env_values, "ML_GNN_DEPTH", default="3") or "3"),
         mlp_depth=int(_read_setting(env_values, "ML_MLP_DEPTH", default="2") or "2"),
