@@ -9,6 +9,8 @@ from apps.ml_engine_service.src.application.usecase.dto import RunPredictionJobC
 from apps.ml_engine_service.src.application.usecase.run_prediction_job_usecase import (
     RunPredictionJobUseCase,
 )
+from apps.shared.src.domain.errors import MLInferenceError, PredictionJobNotFoundError
+from apps.shared.src.domain.exceptions import InvalidValueObject
 from apps.shared.src.infra.logging import StructlogLogger, setup_logger
 from apps.ml_engine_service.src.worker.container import (
     create_repository_from_session,
@@ -20,6 +22,26 @@ from apps.ml_engine_service.src.worker.container import (
 )
 
 logger = StructlogLogger("ml_worker")
+
+
+def _is_non_retryable_error(err: Exception) -> bool:
+    if isinstance(err, (PredictionJobNotFoundError, InvalidValueObject, FileNotFoundError)):
+        return True
+
+    # Inference errors wrap root cause from use case (`raise ... from err`).
+    if isinstance(err, MLInferenceError):
+        cause = err.__cause__
+        if isinstance(cause, (InvalidValueObject, ValueError, TypeError, FileNotFoundError)):
+            return True
+
+    message = str(err).lower()
+    non_retryable_markers = (
+        "unsupported model_version",
+        "size mismatch",
+        "unexpected key(s) in state_dict",
+        "no such file or directory",
+    )
+    return any(marker in message for marker in non_retryable_markers)
 
 
 async def _handle_one_job(
@@ -47,6 +69,16 @@ async def _handle_one_job(
         await queue.ack(job_id=job_id)
         logger.info("worker_job_success", job_id=str(job_id))
     except Exception as err:
+        if _is_non_retryable_error(err):
+            await queue.move_to_dlq(job_id=job_id)
+            await queue.clear_retry_count(job_id=job_id)
+            logger.error(
+                "worker_job_failed_non_retryable_to_dlq",
+                job_id=str(job_id),
+                error=str(err),
+            )
+            return
+
         if on_error == "dlq":
             await queue.move_to_dlq(job_id=job_id)
             await queue.clear_retry_count(job_id=job_id)

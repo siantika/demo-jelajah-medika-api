@@ -40,7 +40,7 @@ class RunPredictionJobUseCase:
         except Exception as err:
             job.mark_failed(str(err))
             await self.repository.save(job=job)
-            raise MLInferenceError(str(err))
+            raise MLInferenceError(str(err)) from err
 
         await self.repository.save(job=job)
 
