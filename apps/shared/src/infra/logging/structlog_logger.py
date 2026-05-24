@@ -2,7 +2,7 @@ from typing import Any
 
 import structlog
 
-from apps.api_service.src.shared.logging.i_logger import ILogger
+from apps.shared.src.infra.logging.i_logger import ILogger
 
 
 class StructlogLogger(ILogger):

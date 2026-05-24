@@ -5,10 +5,6 @@ import structlog
 
 
 def _mask_sensitive_fields(_, __, event_dict):
-    """
-    Mask field sensitif secara otomatis.
-    Tambahkan key lain sesuai kebutuhan bisnismu.
-    """
     sensitive_keys = {
         "password",
         "password_hash",
@@ -28,10 +24,6 @@ def _mask_sensitive_fields(_, __, event_dict):
 
 
 def setup_logger(json_format: bool = True, log_level: str = "INFO") -> None:
-    """
-    Configure structlog once at startup.
-    Safe for uvicorn --reload.
-    """
     if structlog.is_configured():
         return
 

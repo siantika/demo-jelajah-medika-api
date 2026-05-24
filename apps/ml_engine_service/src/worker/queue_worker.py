@@ -9,6 +9,7 @@ from apps.ml_engine_service.src.application.usecase.dto import RunPredictionJobC
 from apps.ml_engine_service.src.application.usecase.run_prediction_job_usecase import (
     RunPredictionJobUseCase,
 )
+from apps.shared.src.infra.logging import StructlogLogger, setup_logger
 from apps.ml_engine_service.src.worker.container import (
     create_repository_from_session,
     create_session_factory,
@@ -17,6 +18,8 @@ from apps.ml_engine_service.src.worker.container import (
     get_prediction_engine_from_settings,
     load_worker_settings,
 )
+
+logger = StructlogLogger("ml_worker")
 
 
 async def _handle_one_job(
@@ -42,26 +45,32 @@ async def _handle_one_job(
             await usecase.execute(RunPredictionJobCmd(job_id=job_id))
         await queue.clear_retry_count(job_id=job_id)
         await queue.ack(job_id=job_id)
-        print(f"[worker] success job_id={job_id}")
+        logger.info("worker_job_success", job_id=str(job_id))
     except Exception as err:
         if on_error == "dlq":
             await queue.move_to_dlq(job_id=job_id)
             await queue.clear_retry_count(job_id=job_id)
-            print(f"[worker] failed->dlq job_id={job_id} error={err}")
+            logger.error("worker_job_failed_to_dlq", job_id=str(job_id), error=str(err))
         else:
             retry_count = await queue.increment_retry_count(job_id=job_id)
             if retry_count > max_retries:
                 await queue.move_to_dlq(job_id=job_id)
                 await queue.clear_retry_count(job_id=job_id)
-                print(
-                    "[worker] failed->dlq "
-                    f"job_id={job_id} retries={retry_count}/{max_retries} error={err}"
+                logger.error(
+                    "worker_job_failed_to_dlq_max_retries",
+                    job_id=str(job_id),
+                    retries=retry_count,
+                    max_retries=max_retries,
+                    error=str(err),
                 )
             else:
                 await queue.requeue(job_id=job_id)
-                print(
-                    "[worker] failed->retry "
-                    f"job_id={job_id} retries={retry_count}/{max_retries} error={err}"
+                logger.warning(
+                    "worker_job_failed_to_retry",
+                    job_id=str(job_id),
+                    retries=retry_count,
+                    max_retries=max_retries,
+                    error=str(err),
                 )
 
 
@@ -72,6 +81,7 @@ async def _main() -> None:
     """
     
     settings = load_worker_settings()
+    setup_logger(json_format=True, log_level="INFO")
     queue = get_job_queue(settings)
     prediction_engine = get_prediction_engine_from_settings(settings)
     session_factory = create_session_factory(settings)
@@ -83,10 +93,12 @@ async def _main() -> None:
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, stop_event.set)
 
-    print(
-        "[worker] started "
-        f"queue_key={settings.queue_key} on_error={settings.on_error} "
-        f"poll_interval={settings.poll_interval}s max_retries={settings.max_retries}"
+    logger.info(
+        "worker_started",
+        queue_key=settings.queue_key,
+        on_error=settings.on_error,
+        poll_interval=settings.poll_interval,
+        max_retries=settings.max_retries,
     )
     try:
         while not stop_event.is_set():
@@ -100,7 +112,7 @@ async def _main() -> None:
             await asyncio.sleep(settings.poll_interval)
     finally:
         await dispose_session_factory(session_factory)
-        print("[worker] stopped")
+        logger.info("worker_stopped")
 
 
 if __name__ == "__main__":

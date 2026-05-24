@@ -6,8 +6,6 @@ import os
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from apps.ml_engine_service.src.application.usecase.run_prediction_job_usecase import (
     RunPredictionJobCmd,
     RunPredictionJobUseCase,
@@ -15,9 +13,10 @@ from apps.ml_engine_service.src.application.usecase.run_prediction_job_usecase i
 from apps.ml_engine_service.src.infra.integrations.gnn_predictor import (
     GNNPredictionEngine,
 )
-from apps.ml_engine_service.src.infra.repositories.sqlalchemy_prediction_job_repository import (
+from apps.shared.src.infra.repositories.sqlalchemy_prediction_job_repository import (
     SQLAlchemyPredictionJobRepository,
 )
+from apps.shared.src.infra.db.session import close_db_engine, get_session_factory
 from apps.shared.src.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
@@ -76,13 +75,7 @@ async def _main() -> None:
     args = _parse_args()
     database_url = _load_database_url()
 
-    engine_db = create_async_engine(database_url, pool_pre_ping=True)
-    session_factory = async_sessionmaker(
-        bind=engine_db,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        autoflush=False,
-    )
+    session_factory = get_session_factory(database_url)
     async with session_factory() as session:
         repository = SQLAlchemyPredictionJobRepository(db=session)
 
@@ -110,7 +103,7 @@ async def _main() -> None:
         print(f"result_count={len(updated_job.result)}")
         for idx, item in enumerate(updated_job.result, start=1):
             print(f"{idx}. affinity={item.affinity} target_sequence={item.target_sequence}")
-    await engine_db.dispose()
+    await close_db_engine(database_url)
 
 
 if __name__ == "__main__":

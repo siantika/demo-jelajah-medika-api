@@ -5,15 +5,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from apps.ml_engine_service.src.application.ports.i_job_queue import IJobQueue
 from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
     IPredictionJobRepository,
 )
 from apps.ml_engine_service.src.infra.queue.redis_queue_job import RedisJobQueue
-from apps.ml_engine_service.src.infra.repositories.sqlalchemy_prediction_job_repository import (
+from apps.shared.src.infra.repositories.sqlalchemy_prediction_job_repository import (
     SQLAlchemyPredictionJobRepository,
+)
+from apps.shared.src.infra.db.session import (
+    close_db_engine,
+    get_session_factory,
 )
 from apps.shared.src.contracts.prediction_engine import PredictionEngine
 from apps.shared.src.queues import MLQueue
@@ -108,20 +112,12 @@ def get_job_queue(settings: WorkerSettings) -> IJobQueue:
 
 
 def create_session_factory(settings: WorkerSettings) -> async_sessionmaker[AsyncSession]:
-    engine_db = create_async_engine(settings.database_url, pool_pre_ping=True)
-    return async_sessionmaker(
-        bind=engine_db,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        autoflush=False,
-    )
+    return get_session_factory(settings.database_url)
 
 
 async def dispose_session_factory(session_factory: async_sessionmaker[AsyncSession]) -> None:
     engine = session_factory.kw.get("bind")
-    if engine is None:
-        return
-    await engine.dispose()
+    await close_db_engine(str(engine.url) if engine is not None else None)
 
 
 def create_repository_from_session(session: AsyncSession) -> IPredictionJobRepository:

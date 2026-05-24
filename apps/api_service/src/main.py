@@ -9,12 +9,12 @@ from apps.api_service.src.api import (
     router as job_management_router,
 )
 from apps.api_service.src.api.exception_handlers import register_exception_handlers
-from apps.api_service.src.shared.database.session import (
+from apps.shared.src.infra.db.session import (
     close_db_engine,
     db_session_dependency,
 )
-from apps.api_service.src.shared.logging.logger_config import setup_logger
-from apps.api_service.src.shared.logging.structlog_logger import StructlogLogger
+from apps.shared.src.infra.logging.logger_config import setup_logger
+from apps.shared.src.infra.logging.structlog_logger import StructlogLogger
 from apps.api_service.src.shared.settings.config import settings
 
 setup_logger(json_format=True, log_level="INFO")
