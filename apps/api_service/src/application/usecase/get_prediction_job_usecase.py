@@ -7,7 +7,7 @@ from apps.api_service.src.application.dto import (
 from apps.api_service.src.application.ports.prediction_job_repository import (
     IPredictionJobRepository,
 )
-from apps.shared.domain.errors import PredictionJobNotFoundError
+from apps.shared.src.domain.errors import PredictionJobNotFoundError
 
 
 class GetPredictionJobUseCase:

@@ -18,7 +18,7 @@ from apps.ml_engine_service.src.infra.integrations.gnn_predictor import (
 from apps.ml_engine_service.src.infra.repositories.sqlalchemy_prediction_job_repository import (
     SQLAlchemyPredictionJobRepository,
 )
-from apps.shared.domain.value_objects.prediction_result_item import (
+from apps.shared.src.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
 

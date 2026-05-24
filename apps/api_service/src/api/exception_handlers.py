@@ -3,8 +3,8 @@ from __future__ import annotations
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from apps.shared.domain.errors import PredictionJobNotFoundError
-from apps.shared.domain.exceptions import InvalidValueObject
+from apps.shared.src.domain.errors import PredictionJobNotFoundError
+from apps.shared.src.domain.exceptions import InvalidValueObject
 
 
 def register_exception_handlers(app: FastAPI) -> None:

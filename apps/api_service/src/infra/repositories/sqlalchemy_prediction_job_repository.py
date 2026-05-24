@@ -14,23 +14,23 @@ from sqlalchemy.ext.asyncio import (
 from apps.api_service.src.application.ports.prediction_job_repository import (
     IPredictionJobRepository,
 )
-from apps.shared.domain.entities.prediction_job import (
+from apps.shared.src.domain.entities.prediction_job import (
     PredictionJob,
 )
-from apps.shared.domain.value_objects.dataset import Dataset
-from apps.shared.domain.value_objects.job_status import (
+from apps.shared.src.domain.value_objects.dataset import Dataset
+from apps.shared.src.domain.value_objects.job_status import (
     JobStatus,
     JobStatusEnum,
 )
-from apps.shared.domain.value_objects.model_version import (
+from apps.shared.src.domain.value_objects.model_version import (
     ModelVersion,
 )
-from apps.shared.domain.value_objects.options import Options
-from apps.shared.domain.value_objects.prediction_result_item import (
+from apps.shared.src.domain.value_objects.options import Options
+from apps.shared.src.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
-from apps.shared.domain.value_objects.smiles import Smiles
-from apps.shared.infra.db.models.jobs import jobs
+from apps.shared.src.domain.value_objects.smiles import Smiles
+from apps.shared.src.infra.db.models.jobs import jobs
 
 
 class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):

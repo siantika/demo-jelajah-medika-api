@@ -4,9 +4,9 @@ from apps.ml_engine_service.src.application.ports.prediction_job_repository impo
     IPredictionJobRepository,
 )
 from apps.ml_engine_service.src.application.usecase.dto import RunPredictionJobCmd
-from apps.shared.contracts.prediction_engine import PredictionEngine
-from apps.shared.domain.entities.prediction_job import PredictionJob
-from apps.shared.domain.errors import MLInferenceError, PredictionJobNotFoundError
+from apps.shared.src.contracts.prediction_engine import PredictionEngine
+from apps.shared.src.domain.entities.prediction_job import PredictionJob
+from apps.shared.src.domain.errors import MLInferenceError, PredictionJobNotFoundError
 
 
 class RunPredictionJobUseCase:

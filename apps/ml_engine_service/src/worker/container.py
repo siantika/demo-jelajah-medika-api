@@ -15,8 +15,8 @@ from apps.ml_engine_service.src.infra.queue.redis_queue_job import RedisJobQueue
 from apps.ml_engine_service.src.infra.repositories.sqlalchemy_prediction_job_repository import (
     SQLAlchemyPredictionJobRepository,
 )
-from apps.shared.contracts.prediction_engine import PredictionEngine
-from apps.shared.queues import MLQueue
+from apps.shared.src.contracts.prediction_engine import PredictionEngine
+from apps.shared.src.queues import MLQueue
 
 _repository_factory: Callable[[], IPredictionJobRepository] | None = None
 

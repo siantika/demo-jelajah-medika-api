@@ -12,19 +12,19 @@ from apps.api_service.src.application.dto import (
 from apps.api_service.src.application.usecase.get_prediction_job_usecase import (
     GetPredictionJobUseCase,
 )
-from apps.shared.domain.errors import PredictionJobNotFoundError
-from apps.shared.domain.entities.prediction_job import (
+from apps.shared.src.domain.errors import PredictionJobNotFoundError
+from apps.shared.src.domain.entities.prediction_job import (
     PredictionJob,
 )
-from apps.shared.domain.value_objects.dataset import Dataset
-from apps.shared.domain.value_objects.model_version import (
+from apps.shared.src.domain.value_objects.dataset import Dataset
+from apps.shared.src.domain.value_objects.model_version import (
     ModelVersion,
 )
-from apps.shared.domain.value_objects.options import Options
-from apps.shared.domain.value_objects.prediction_result_item import (
+from apps.shared.src.domain.value_objects.options import Options
+from apps.shared.src.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )
-from apps.shared.domain.value_objects.smiles import Smiles
+from apps.shared.src.domain.value_objects.smiles import Smiles
 
 
 class FakePredictionJobRepository:
