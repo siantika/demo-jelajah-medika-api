@@ -16,6 +16,7 @@ from apps.ml_engine_service.src.infra.repositories.sqlalchemy_prediction_job_rep
     SQLAlchemyPredictionJobRepository,
 )
 from apps.shared.contracts.prediction_engine import PredictionEngine
+from apps.shared.queues import MLQueue
 
 _repository_factory: Callable[[], IPredictionJobRepository] | None = None
 
@@ -31,14 +32,7 @@ class WorkerSettings:
     gnn_features: int
     gnn_depth: int
     mlp_depth: int
-
-
-@dataclass(frozen=True)
-class MLQueue:
-    QUEUED: str = "queue:ml:queued"
-    PROCESSING: str = "queue:ml:processing"
-    RETRY: str = "queue:ml:retry"
-    DLQ: str = "queue:ml:dlq"
+    max_retries: int
 
 
 def _load_env_file() -> dict[str, str]:
@@ -105,6 +99,7 @@ def load_worker_settings() -> WorkerSettings:
         gnn_features=int(_read_setting(env_values, "ML_GNN_FEATURES", default="40") or "40"),
         gnn_depth=int(_read_setting(env_values, "ML_GNN_DEPTH", default="3") or "3"),
         mlp_depth=int(_read_setting(env_values, "ML_MLP_DEPTH", default="2") or "2"),
+        max_retries=int(_read_setting(env_values, "ML_MAX_RETRIES", default="3") or "3"),
     )
 
 

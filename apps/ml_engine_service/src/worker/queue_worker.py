@@ -25,7 +25,9 @@ async def _handle_one_job(
     session_factory: async_sessionmaker[AsyncSession],
     prediction_engine,
     on_error: str,
+    max_retries: int,
 ) -> None:
+    await queue.promote_retry()
     job_id = await queue.dequeue()
     if job_id is None:
         return
@@ -38,15 +40,29 @@ async def _handle_one_job(
                 prediction_engine=prediction_engine,
             )
             await usecase.execute(RunPredictionJobCmd(job_id=job_id))
+        await queue.clear_retry_count(job_id=job_id)
         await queue.ack(job_id=job_id)
         print(f"[worker] success job_id={job_id}")
     except Exception as err:
         if on_error == "dlq":
             await queue.move_to_dlq(job_id=job_id)
+            await queue.clear_retry_count(job_id=job_id)
             print(f"[worker] failed->dlq job_id={job_id} error={err}")
         else:
-            await queue.requeue(job_id=job_id)
-            print(f"[worker] failed->requeue job_id={job_id} error={err}")
+            retry_count = await queue.increment_retry_count(job_id=job_id)
+            if retry_count > max_retries:
+                await queue.move_to_dlq(job_id=job_id)
+                await queue.clear_retry_count(job_id=job_id)
+                print(
+                    "[worker] failed->dlq "
+                    f"job_id={job_id} retries={retry_count}/{max_retries} error={err}"
+                )
+            else:
+                await queue.requeue(job_id=job_id)
+                print(
+                    "[worker] failed->retry "
+                    f"job_id={job_id} retries={retry_count}/{max_retries} error={err}"
+                )
 
 
 async def _main() -> None:
@@ -70,7 +86,7 @@ async def _main() -> None:
     print(
         "[worker] started "
         f"queue_key={settings.queue_key} on_error={settings.on_error} "
-        f"poll_interval={settings.poll_interval}s"
+        f"poll_interval={settings.poll_interval}s max_retries={settings.max_retries}"
     )
     try:
         while not stop_event.is_set():
@@ -79,6 +95,7 @@ async def _main() -> None:
                 session_factory=session_factory,
                 prediction_engine=prediction_engine,
                 on_error=settings.on_error,
+                max_retries=settings.max_retries,
             )
             await asyncio.sleep(settings.poll_interval)
     finally:
