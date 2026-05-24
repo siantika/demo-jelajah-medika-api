@@ -2,4 +2,4 @@ from apps.ml_engine_service.src.infra.repositories.sqlalchemy_prediction_job_rep
     SQLAlchemyPredictionJobRepository,
 )
 
-__all__ = ["InMemoryPredictionJobRepository", "SQLAlchemyPredictionJobRepository"]
+__all__ = ["SQLAlchemyPredictionJobRepository"]

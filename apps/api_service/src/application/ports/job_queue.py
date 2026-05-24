@@ -1,8 +1,3 @@
-from __future__ import annotations
+from apps.shared.src.contracts.job_queue_ports import IPredictionJobQueueProducer as IJobQueue
 
-from typing import Protocol
-from uuid import UUID
-
-
-class IJobQueue(Protocol):
-    async def enqueue_prediction(self, *, job_id: UUID) -> None: ...
+__all__ = ["IJobQueue"]
