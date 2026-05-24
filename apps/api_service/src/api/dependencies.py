@@ -22,8 +22,8 @@ from apps.api_service.src.infra.repositories.sqlalchemy_prediction_job_repositor
 )
 from apps.api_service.src.infra.smiles_validator_default import DomainSmilesValidator
 from apps.api_service.src.shared.database.session import db_session_dependency
-from apps.api_service.src.shared.queue import queues
 from apps.api_service.src.shared.settings.config import settings
+from apps.shared import queues
 
 
 def get_repository(

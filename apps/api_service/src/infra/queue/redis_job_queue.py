@@ -4,8 +4,6 @@ from uuid import UUID
 
 from redis.asyncio import Redis
 
-from apps.api_service.src.application.ports.job_queue import IJobQueue
-
 
 class RedisJobQueue:
 
