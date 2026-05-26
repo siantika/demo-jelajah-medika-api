@@ -1,3 +1,7 @@
+"""
+    Dependency providers for the application.
+"""
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -17,12 +21,12 @@ from apps.api_service.src.application.usecase.get_prediction_job_usecase import 
     GetPredictionJobUseCase,
 )
 from apps.api_service.src.infra.queue.redis_job_queue import RedisJobQueue
+from apps.api_service.src.infra.smiles_validator_default import DomainSmilesValidator
+from apps.api_service.src.shared.settings.config import settings
+from apps.shared.src.infra.db.session import db_session_dependency
 from apps.shared.src.infra.repositories.sqlalchemy_prediction_job_repository import (
     SQLAlchemyPredictionJobRepository,
 )
-from apps.api_service.src.infra.smiles_validator_default import DomainSmilesValidator
-from apps.shared.src.infra.db.session import db_session_dependency
-from apps.api_service.src.shared.settings.config import settings
 from apps.shared.src.queues import MLQueue
 
 
@@ -51,13 +55,12 @@ def get_create_prediction_usecase(
         smiles_validator=smiles_validator,
     )
 
-
-def get_get_prediction_job_usecase(
+def get_prediction_job_usecase(
     repository: Annotated[IPredictionJobRepository, Depends(get_repository)],
 ) -> GetPredictionJobUseCase:
     return GetPredictionJobUseCase(repository=repository)
 
 
 CreatePredictionUseCaseDep = Annotated[CreatePredictionJobUseCase, Depends(get_create_prediction_usecase)]
-GetPredictionJobUseCaseDep = Annotated[GetPredictionJobUseCase, Depends(get_get_prediction_job_usecase)]
+GetPredictionJobUseCaseDep = Annotated[GetPredictionJobUseCase, Depends(get_prediction_job_usecase)]
 RepositoryDep = Annotated[IPredictionJobRepository, Depends(get_repository)]
