@@ -9,8 +9,10 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api_service.src.application.ports.job_queue import IJobQueue
-from apps.api_service.src.application.ports.prediction_job_repository import (
+from apps.shared.src.contracts.i_job_queue import (
+    IPredictionJobQueueProducer as IJobQueue,
+)
+from apps.shared.src.contracts.prediction_job_repository import (
     IPredictionJobRepository,
 )
 from apps.api_service.src.application.ports.smiles_validator import ISmilesValidator

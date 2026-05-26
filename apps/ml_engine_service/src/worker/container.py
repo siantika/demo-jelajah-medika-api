@@ -7,19 +7,21 @@ from typing import Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from apps.ml_engine_service.src.application.ports.i_job_queue import IJobQueue
-from apps.ml_engine_service.src.application.ports.prediction_job_repository import (
+from apps.shared.src.contracts.i_job_queue import (
+    IPredictionJobQueueConsumer as IJobQueue,
+)
+from apps.shared.src.contracts.prediction_job_repository import (
     IPredictionJobRepository,
 )
 from apps.ml_engine_service.src.infra.queue.redis_queue_job import RedisJobQueue
-from apps.shared.src.infra.repositories.sqlalchemy_prediction_job_repository import (
-    SQLAlchemyPredictionJobRepository,
-)
+from apps.shared.src.contracts.prediction_engine import PredictionEngine
 from apps.shared.src.infra.db.session import (
     close_db_engine,
     get_session_factory,
 )
-from apps.shared.src.contracts.prediction_engine import PredictionEngine
+from apps.shared.src.infra.repositories.sqlalchemy_prediction_job_repository import (
+    SQLAlchemyPredictionJobRepository,
+)
 from apps.shared.src.queues import MLQueue
 
 _repository_factory: Callable[[], IPredictionJobRepository] | None = None

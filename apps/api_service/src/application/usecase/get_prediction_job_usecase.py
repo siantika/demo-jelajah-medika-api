@@ -4,9 +4,7 @@ from apps.api_service.src.application.dto import (
     GetJobStatusResult,
     GetPredictionJobQuery,
 )
-from apps.api_service.src.application.ports.prediction_job_repository import (
-    IPredictionJobRepository,
-)
+from apps.shared.src.contracts.prediction_job_repository import IPredictionJobRepository
 from apps.shared.src.domain.errors import PredictionJobNotFoundError
 
 

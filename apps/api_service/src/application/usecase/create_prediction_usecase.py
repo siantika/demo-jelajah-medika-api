@@ -10,11 +10,9 @@ from apps.api_service.src.application.dto import (
     CreatePredictionCmd,
     PredictionOptionsCmd,
 )
-from apps.api_service.src.application.ports.job_queue import IJobQueue
-from apps.api_service.src.application.ports.prediction_job_repository import (
-    IPredictionJobRepository,
-)
 from apps.api_service.src.application.ports.smiles_validator import ISmilesValidator
+from apps.shared.src.contracts.i_job_queue import IPredictionJobQueueProducer
+from apps.shared.src.contracts.prediction_job_repository import IPredictionJobRepository
 from apps.shared.src.domain.entities.prediction_job import (
     PredictionJob,
 )
@@ -37,7 +35,7 @@ class CreatePredictionResult:
 class CreatePredictionJobUseCase:
     def __init__(
         self,
-        job_queue: IJobQueue,
+        job_queue: IPredictionJobQueueProducer,
         smiles_validator: ISmilesValidator,
         repository: IPredictionJobRepository
     ):
