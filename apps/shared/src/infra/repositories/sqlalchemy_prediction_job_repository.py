@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,11 +29,17 @@ class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
         stmt = insert(jobs).values(**row).on_conflict_do_update(
             index_elements=[jobs.c.id],
             set_={
+                "type": row["type"],
                 "status": row["status"],
                 "payload": row["payload"],
                 "result": row["result"],
+                "error_code": row["error_code"],
                 "error_message": row["error_message"],
+                "started_at": row["started_at"],
+                "completed_at": row["completed_at"],
+                "failed_at": row["failed_at"],
                 "updated_at": row["updated_at"],
+                "idempotency_key": row["idempotency_key"],
                 "request_hash": row["request_hash"],
                 "correlation_id": row["correlation_id"],
             },
@@ -46,6 +52,45 @@ class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
         row = (await self._session.execute(stmt)).mappings().first()
         return self._from_row(dict(row)) if row is not None else None
 
+    async def mark_retry_scheduled(
+        self,
+        *,
+        job_id: UUID,
+        next_retry_at: datetime,
+        retry_count: int,
+    ) -> None:
+        now = datetime.now(timezone.utc)
+        stmt = (
+            update(jobs)
+            .where(jobs.c.id == job_id)
+            .values(
+                status="RETRY_SCHEDULED",
+                retry_count=retry_count,
+                next_retry_at=next_retry_at,
+                updated_at=now,
+            )
+        )
+        await self._session.execute(stmt)
+        await self._session.commit()
+
+    async def mark_queued(
+        self,
+        *,
+        job_id: UUID,
+    ) -> None:
+        now = datetime.now(timezone.utc)
+        stmt = (
+            update(jobs)
+            .where(jobs.c.id == job_id)
+            .values(
+                status="QUEUED",
+                next_retry_at=None,
+                updated_at=now,
+            )
+        )
+        await self._session.execute(stmt)
+        await self._session.commit()
+
     @staticmethod
     def _to_row(job: PredictionJob) -> dict:
         status_map = {
@@ -54,10 +99,11 @@ class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
             JobStatusEnum.SUCCESS: "COMPLETED",
             JobStatusEnum.FAILED: "FAILED",
         }
+        db_status = status_map[job.status.value]
         return {
             "id": job.id,
             "type": "prediction",
-            "status": status_map[job.status.value],
+            "status": db_status,
             "payload": {
                 "smiles": str(job.smiles),
                 "dataset": str(job.dataset),
@@ -73,6 +119,7 @@ class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
                 }
                 for item in job.result
             ],
+            "error_code": None,
             "error_message": job.error,
             "idempotency_key": str(job.id),
             "request_hash": _build_request_hash(
@@ -83,6 +130,9 @@ class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
                 model_version=str(job.model_version),
             ),
             "correlation_id": str(job.id),
+            "started_at": job.updated_at if db_status == "PROCESSING" else None,
+            "completed_at": job.updated_at if db_status == "COMPLETED" else None,
+            "failed_at": job.updated_at if db_status == "FAILED" else None,
             "created_at": job.created_at,
             "updated_at": job.updated_at,
         }
@@ -93,7 +143,9 @@ class SQLAlchemyPredictionJobRepository(IPredictionJobRepository):
         reverse_status_map = {
             "QUEUED": JobStatusEnum.PENDING,
             "PROCESSING": JobStatusEnum.RUNNING,
+            "RETRY_SCHEDULED": JobStatusEnum.RUNNING,
             "COMPLETED": JobStatusEnum.SUCCESS,
+            "DEAD": JobStatusEnum.FAILED,
             "FAILED": JobStatusEnum.FAILED,
             "CANCELLED": JobStatusEnum.FAILED,
         }
