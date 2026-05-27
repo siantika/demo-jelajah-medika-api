@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 import random
 import time
-from datetime import datetime, timezone
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -19,6 +21,7 @@ from apps.shared.src.infra.logging import StructlogLogger
 logger = StructlogLogger("ml_worker")
 _BASE_RETRY_DELAY_SECONDS = 5
 _MAX_RETRY_DELAY_SECONDS = 300
+_SIMULATE_TIMEOUT_ENV = "ML_WORKER_SIMULATE_TIMEOUT_50_50"
 
 
 @dataclass(frozen=True)
@@ -49,13 +52,42 @@ def _is_non_retryable_error(err: Exception) -> bool:
     return any(marker in message for marker in non_retryable_markers)
 
 
+def _read_env_flag_with_dotenv_fallback(key: str) -> bool:
+    raw = os.getenv(key)
+    if raw is not None:
+        return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+    env_file = Path(".env")
+    if not env_file.exists():
+        return False
+
+    for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, value = line.split("=", 1)
+        if k.strip().upper() != key.upper():
+            continue
+        parsed = value.strip().strip('"').strip("'").lower()
+        return parsed in {"1", "true", "yes", "on"}
+    return False
+
+
 async def _execute_job(
     *,
     job_id: UUID,
     session_factory: async_sessionmaker[AsyncSession],
     prediction_engine: object,
 ) -> None:
-    from apps.ml_engine_service.src.worker.container import create_repository_from_session
+    # Fault injection for demo/testing retry flow.
+    # Enable with ML_WORKER_SIMULATE_TIMEOUT_50_50=1.
+    if _read_env_flag_with_dotenv_fallback(_SIMULATE_TIMEOUT_ENV) and random.random() < 0.5:
+        logger.warning("worker_fault_injection_timeout", job_id=str(job_id), mode="50_50")
+        raise TimeoutError("Simulated model timeout (50:50 fault injection)")
+
+    from apps.ml_engine_service.src.worker.container import (
+        create_repository_from_session,
+    )
 
     async with session_factory() as session:
         repository = create_repository_from_session(session)
@@ -73,7 +105,9 @@ async def _mark_retry_scheduled_in_db(
     retry_count: int,
     available_at_epoch: float,
 ) -> None:
-    from apps.ml_engine_service.src.worker.container import create_repository_from_session
+    from apps.ml_engine_service.src.worker.container import (
+        create_repository_from_session,
+    )
 
     async with session_factory() as session:
         repository = create_repository_from_session(session)
@@ -89,7 +123,9 @@ async def _mark_queued_in_db(
     session_factory: async_sessionmaker[AsyncSession],
     job_id: UUID,
 ) -> None:
-    from apps.ml_engine_service.src.worker.container import create_repository_from_session
+    from apps.ml_engine_service.src.worker.container import (
+        create_repository_from_session,
+    )
 
     async with session_factory() as session:
         repository = create_repository_from_session(session)
@@ -166,6 +202,8 @@ def _compute_retry_delay_seconds(retry_count: int) -> int:
 
 
 async def handle_one_job(deps: JobHandlerDeps) -> None:
+    # First, proccess already retryable job in processing queue 
+    # to queued queue
     promoted_job_id = await deps.queue.promote_retry()
     if promoted_job_id is not None:
         await _mark_queued_in_db(
