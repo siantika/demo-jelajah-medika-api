@@ -36,3 +36,11 @@ class GetJobStatusResult:
 @dataclass(frozen=True, kw_only=True)
 class GetPredictionJobQuery:
     job_id: UUID
+
+
+@dataclass(frozen=True)
+class QueueMetricsResult:
+    queued: int
+    processing: int
+    retry: int
+    dlq: int

@@ -7,12 +7,14 @@ from fastapi import APIRouter, status
 from apps.api_service.src.api.dependencies import (
     CreatePredictionUseCaseDep,
     GetPredictionJobUseCaseDep,
+    GetQueueMetricsUseCaseDep,
 )
 from apps.api_service.src.api.schemas import (
     JobStatusResponse,
     PredictionCreateRequest,
     PredictionCreateResponse,
     PredictionItem,
+    QueueMetricsResponse,
 )
 from apps.api_service.src.application.dto import (
     CreatePredictionCmd,
@@ -76,4 +78,15 @@ async def get_prediction_job(
         metrics=result.metrics,
         error_code=result.error_code,
         error_message=result.error_message,
+    )
+
+
+@router.get("/queues/metrics", response_model=QueueMetricsResponse)
+async def get_queue_metrics(usecase: GetQueueMetricsUseCaseDep) -> QueueMetricsResponse:
+    result = await usecase.execute()
+    return QueueMetricsResponse(
+        queued=result.queued,
+        processing=result.processing,
+        retry=result.retry,
+        dlq=result.dlq,
     )

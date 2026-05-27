@@ -85,3 +85,11 @@ class JobStatusResponse(StrictSchema):
     metrics: Optional[JobMetrics] = Field(default=None, description="Job metrics.")
     error_code: Optional[str] = Field(default=None, description="Error code if job failed.")
     error_message: Optional[str] = Field(default=None, description="Error message if job failed.")
+
+
+class QueueMetricsResponse(StrictSchema):
+    """Basic queue metrics from Redis."""
+    queued: int = Field(..., ge=0, description="Number of jobs waiting in queued list.", example=12)
+    processing: int = Field(..., ge=0, description="Number of jobs currently being processed.", example=3)
+    retry: int = Field(..., ge=0, description="Number of jobs in retry schedule.", example=2)
+    dlq: int = Field(..., ge=0, description="Number of jobs moved to dead-letter queue.", example=1)
