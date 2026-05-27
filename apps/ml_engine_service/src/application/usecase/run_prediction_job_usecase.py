@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from apps.ml_engine_service.src.application.usecase.dto import RunPredictionJobCmd
+from apps.shared.src.contracts.prediction_engine import PredictionEngine
 from apps.shared.src.contracts.prediction_job_repository import (
     IPredictionJobRepository,
 )
-from apps.ml_engine_service.src.application.usecase.dto import RunPredictionJobCmd
-from apps.shared.src.contracts.prediction_engine import PredictionEngine
 from apps.shared.src.domain.entities.prediction_job import PredictionJob
 from apps.shared.src.domain.errors import MLInferenceError, PredictionJobNotFoundError
 
@@ -27,7 +27,8 @@ class RunPredictionJobUseCase:
 
         job.mark_running()
         await self.repository.save(job=job)
-
+        
+        # Inference process using Machine Learning model
         try:
             prediction_result = self.prediction_engine.predict(
                 smiles=str(job.smiles),

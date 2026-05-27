@@ -1,3 +1,4 @@
+import time
 from uuid import UUID
 
 from redis.asyncio import Redis
@@ -62,10 +63,11 @@ class RedisJobQueue:
         self,
         *,
         job_id: UUID,
+        available_at_epoch: float,
     ) -> None:
         async with self._client.pipeline(transaction=True) as pipe:
             pipe.lrem(self._processing_key, 1, str(job_id))
-            pipe.lpush(self._retry_key, str(job_id))
+            pipe.zadd(self._retry_key, {str(job_id): available_at_epoch})
             await pipe.execute()
 
     async def move_to_dlq(
@@ -79,11 +81,24 @@ class RedisJobQueue:
             await pipe.execute()
 
     async def promote_retry(self) -> UUID | None:
-        raw_job_id = await self._client.rpoplpush(
+        now_epoch = time.time()
+        due_jobs = await self._client.zrangebyscore(
             self._retry_key,
-            self._queued_key,
+            min="-inf",
+            max=now_epoch,
+            start=0,
+            num=1,
         )
-        if raw_job_id is None:
+        if not due_jobs:
+            return None
+
+        raw_job_id = due_jobs[0]
+        async with self._client.pipeline(transaction=True) as pipe:
+            pipe.zrem(self._retry_key, raw_job_id)
+            pipe.lpush(self._queued_key, raw_job_id)
+            removed_count, _ = await pipe.execute()
+
+        if int(removed_count) == 0:
             return None
         return UUID(raw_job_id)
 

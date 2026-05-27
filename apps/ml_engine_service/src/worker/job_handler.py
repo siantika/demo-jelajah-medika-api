@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import random
+import time
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -14,6 +17,8 @@ from apps.shared.src.domain.exceptions import InvalidValueObject
 from apps.shared.src.infra.logging import StructlogLogger
 
 logger = StructlogLogger("ml_worker")
+_BASE_RETRY_DELAY_SECONDS = 5
+_MAX_RETRY_DELAY_SECONDS = 300
 
 
 @dataclass(frozen=True)
@@ -61,6 +66,36 @@ async def _execute_job(
         await usecase.execute(RunPredictionJobCmd(job_id=job_id))
 
 
+async def _mark_retry_scheduled_in_db(
+    *,
+    session_factory: async_sessionmaker[AsyncSession],
+    job_id: UUID,
+    retry_count: int,
+    available_at_epoch: float,
+) -> None:
+    from apps.ml_engine_service.src.worker.container import create_repository_from_session
+
+    async with session_factory() as session:
+        repository = create_repository_from_session(session)
+        await repository.mark_retry_scheduled(
+            job_id=job_id,
+            next_retry_at=datetime.fromtimestamp(available_at_epoch, tz=timezone.utc),
+            retry_count=retry_count,
+        )
+
+
+async def _mark_queued_in_db(
+    *,
+    session_factory: async_sessionmaker[AsyncSession],
+    job_id: UUID,
+) -> None:
+    from apps.ml_engine_service.src.worker.container import create_repository_from_session
+
+    async with session_factory() as session:
+        repository = create_repository_from_session(session)
+        await repository.mark_queued(job_id=job_id)
+
+
 async def _handle_success(*, queue: object, job_id: UUID) -> None:
     await queue.clear_retry_count(job_id=job_id)
     await queue.ack(job_id=job_id)
@@ -76,6 +111,7 @@ async def _send_to_dlq(*, queue: object, job_id: UUID, event: str, err: Exceptio
 async def _handle_failure(
     *,
     queue: object,
+    session_factory: async_sessionmaker[AsyncSession],
     job_id: UUID,
     err: Exception,
     max_retries: int,
@@ -101,18 +137,41 @@ async def _handle_failure(
         )
         return
 
-    await queue.requeue(job_id=job_id)
+    retry_delay = _compute_retry_delay_seconds(retry_count)
+    available_at_epoch = time.time() + retry_delay
+    await queue.requeue(job_id=job_id, available_at_epoch=available_at_epoch)
+    await _mark_retry_scheduled_in_db(
+        session_factory=session_factory,
+        job_id=job_id,
+        retry_count=retry_count,
+        available_at_epoch=available_at_epoch,
+    )
     logger.warning(
         "worker_job_failed_to_retry",
         job_id=str(job_id),
         retries=retry_count,
         max_retries=max_retries,
+        retry_delay_seconds=retry_delay,
+        available_at_epoch=available_at_epoch,
         error=str(err),
     )
 
 
+def _compute_retry_delay_seconds(retry_count: int) -> int:
+    # Exponential backoff with small jitter to avoid synchronized retries.
+    retry_count = max(1, retry_count)
+    base_delay = min(_BASE_RETRY_DELAY_SECONDS * (2 ** (retry_count - 1)), _MAX_RETRY_DELAY_SECONDS)
+    jitter = random.randint(0, 2)
+    return int(base_delay + jitter)
+
+
 async def handle_one_job(deps: JobHandlerDeps) -> None:
-    await deps.queue.promote_retry()
+    promoted_job_id = await deps.queue.promote_retry()
+    if promoted_job_id is not None:
+        await _mark_queued_in_db(
+            session_factory=deps.session_factory,
+            job_id=promoted_job_id,
+        )
     job_id = await deps.queue.dequeue()
     if job_id is None:
         return
@@ -127,6 +186,7 @@ async def handle_one_job(deps: JobHandlerDeps) -> None:
     except Exception as err:
         await _handle_failure(
             queue=deps.queue,
+            session_factory=deps.session_factory,
             job_id=job_id,
             err=err,
             max_retries=deps.max_retries,
