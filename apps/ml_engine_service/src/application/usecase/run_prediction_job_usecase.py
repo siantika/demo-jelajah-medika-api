@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from apps.ml_engine_service.src.application.usecase.dto import RunPredictionJobCmd
-from apps.shared.src.contracts.prediction_engine import PredictionEngine
-from apps.shared.src.contracts.prediction_job_repository import (
+from apps.shared.src.contracts.i_prediction_engine import PredictionEngine
+from apps.shared.src.contracts.i_prediction_job_repository import (
     IPredictionJobRepository,
 )
 from apps.shared.src.domain.entities.prediction_job import PredictionJob

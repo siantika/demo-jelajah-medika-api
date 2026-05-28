@@ -12,7 +12,9 @@ from apps.api_service.src.application.dto import (
 )
 from apps.api_service.src.application.ports.smiles_validator import ISmilesValidator
 from apps.shared.src.contracts.i_job_queue import IPredictionJobQueueProducer
-from apps.shared.src.contracts.prediction_job_repository import IPredictionJobRepository
+from apps.shared.src.contracts.i_prediction_job_repository import (
+    IPredictionJobRepository,
+)
 from apps.shared.src.domain.entities.prediction_job import (
     PredictionJob,
 )

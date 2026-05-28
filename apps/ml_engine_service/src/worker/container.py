@@ -10,8 +10,8 @@ from apps.ml_engine_service.src.worker.config import WorkerSettings
 from apps.shared.src.contracts.i_job_queue import (
     IPredictionJobQueueConsumer as IJobQueue,
 )
-from apps.shared.src.contracts.prediction_engine import PredictionEngine
-from apps.shared.src.contracts.prediction_job_repository import (
+from apps.shared.src.contracts.i_prediction_engine import PredictionEngine
+from apps.shared.src.contracts.i_prediction_job_repository import (
     IPredictionJobRepository,
 )
 from apps.shared.src.infra.db.session import (

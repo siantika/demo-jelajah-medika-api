@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from apps.shared.src.contracts.prediction_engine import PredictionEngine
 from apps.ml_engine_service.src.infra.integrations.gnn.predictor import GNNPredictorCore
+from apps.shared.src.contracts.i_prediction_engine import PredictionEngine
 from apps.shared.src.domain.value_objects.prediction_result_item import (
     PredictionResultItem,
 )

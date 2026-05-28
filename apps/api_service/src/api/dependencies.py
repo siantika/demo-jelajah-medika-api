@@ -10,13 +10,6 @@ from fastapi import Depends
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.shared.src.contracts.i_job_queue import (
-    IPredictionJobQueueProducer as IJobQueue,
-)
-from apps.shared.src.contracts.i_repo_queue import IRepoQueue
-from apps.shared.src.contracts.prediction_job_repository import (
-    IPredictionJobRepository,
-)
 from apps.api_service.src.application.ports.smiles_validator import ISmilesValidator
 from apps.api_service.src.application.usecase.create_prediction_usecase import (
     CreatePredictionJobUseCase,
@@ -27,12 +20,19 @@ from apps.api_service.src.application.usecase.get_prediction_job_usecase import 
 from apps.api_service.src.application.usecase.get_queue_metrics_usecase import (
     GetQueueMetricsUseCase,
 )
+from apps.api_service.src.infra.queue.redis_job_queue import RedisJobQueue
 from apps.api_service.src.infra.repositories.redis_queue_repository import (
     RedisQueueRepository,
 )
-from apps.api_service.src.infra.queue.redis_job_queue import RedisJobQueue
 from apps.api_service.src.infra.smiles_validator_default import DomainSmilesValidator
 from apps.api_service.src.shared.settings.config import settings
+from apps.shared.src.contracts.i_job_queue import (
+    IPredictionJobQueueProducer as IJobQueue,
+)
+from apps.shared.src.contracts.i_prediction_job_repository import (
+    IPredictionJobRepository,
+)
+from apps.shared.src.contracts.i_repo_queue import IRepoQueue
 from apps.shared.src.infra.db.session import db_session_dependency
 from apps.shared.src.infra.repositories.sqlalchemy_prediction_job_repository import (
     SQLAlchemyPredictionJobRepository,
