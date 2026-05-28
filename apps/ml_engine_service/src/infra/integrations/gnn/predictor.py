@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -48,18 +49,43 @@ class GNNPredictorCore:
     def _word_dict_path(self) -> Path:
         return self.assets_root / "static" / "models" / f"{self.dataset_name}_wordDict.pickle"
 
+    @staticmethod
+    def _is_truthy(value: str | None) -> bool:
+        return (value or "").strip().lower() in {"1", "true", "yes", "on"}
+
     def load_model_state(self):
-        safe_numpy_globals = [np.core.multiarray.scalar, np.dtype]
+        # Keep safe loading as default, but allow trusted fallback via env.
+        safe_numpy_globals = [np.dtype, np.ndarray]
+        scalar = getattr(np.core.multiarray, "scalar", None)
+        if scalar is not None:
+            safe_numpy_globals.append(scalar)
+
+        # Handle numpy._core.multiarray.scalar when available.
+        np_core = getattr(np, "_core", None)
+        if np_core is not None:
+            np_core_multiarray = getattr(np_core, "multiarray", None)
+            scalar = getattr(np_core_multiarray, "scalar", None)
+            if scalar is not None:
+                safe_numpy_globals.append(scalar)
+
         if hasattr(np, "dtypes"):
             for name in dir(np.dtypes):
                 value = getattr(np.dtypes, name, None)
                 if isinstance(value, type) and name.endswith("DType"):
                     safe_numpy_globals.append(value)
+
+        allow_unsafe_fallback = self._is_truthy(os.getenv("ML_ALLOW_UNSAFE_MODEL_LOAD"))
         with open(self._model_path(), "rb") as f:
-            if hasattr(torch.serialization, "safe_globals"):
-                with torch.serialization.safe_globals(safe_numpy_globals):
-                    return torch.load(f, map_location=self.device, weights_only=True)
-            return torch.load(f, map_location=self.device, weights_only=True)
+            try:
+                if hasattr(torch.serialization, "safe_globals"):
+                    with torch.serialization.safe_globals(safe_numpy_globals):
+                        return torch.load(f, map_location=self.device, weights_only=True)
+                return torch.load(f, map_location=self.device, weights_only=True)
+            except Exception:
+                if not allow_unsafe_fallback:
+                    raise
+                f.seek(0)
+                return torch.load(f, map_location=self.device, weights_only=False)
 
     def load_target_sequence(self):
         with open(self._target_path(), "r") as f:

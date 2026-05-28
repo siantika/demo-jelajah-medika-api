@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import signal
-from apps.shared.src.infra.logging import StructlogLogger, setup_logger
-from apps.ml_engine_service.src.worker.job_handler import JobHandlerDeps, handle_one_job
+
+from apps.ml_engine_service.src.worker.config import load_worker_settings
 from apps.ml_engine_service.src.worker.container import (
     create_session_factory,
     dispose_session_factory,
     get_job_queue,
     get_prediction_engine_from_settings,
-    load_worker_settings,
 )
+from apps.ml_engine_service.src.worker.job_handler import JobHandlerDeps, handle_one_job
+from apps.shared.src.infra.logging import StructlogLogger, setup_logger
 
 logger = StructlogLogger("ml_worker")
 

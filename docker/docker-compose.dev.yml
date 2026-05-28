@@ -36,6 +36,41 @@ services:
       db:
         condition: service_healthy
 
+  seed:
+    image: postgres:16-alpine
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-drugs}
+      POSTGRES_USER: ${POSTGRES_USER:-dti}
+    volumes:
+      - ../scripts/seed:/seed:ro
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -f /seed/target_info_seed.sql ]; then
+          echo "seed file not found: /seed/target_info_seed.sql (skip)";
+          exit 0;
+        fi;
+        table_exists=$$(psql -h db -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -tAc "SELECT to_regclass('public.target_info') IS NOT NULL");
+        if [ "$$table_exists" != "t" ]; then
+          echo "table public.target_info does not exist yet (skip)";
+          exit 0;
+        fi;
+        count=$$(psql -h db -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -tAc "SELECT COUNT(*) FROM public.target_info");
+        if [ "$$count" = "0" ]; then
+          echo "seeding target_info...";
+          psql -h db -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -v ON_ERROR_STOP=1 -f /seed/target_info_seed.sql;
+          echo "seed completed";
+        else
+          echo "target_info already has $$count rows (skip)";
+        fi
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
   api:
     build:
       context: ..
@@ -57,6 +92,8 @@ services:
       redis:
         condition: service_healthy
       migrate:
+        condition: service_completed_successfully
+      seed:
         condition: service_completed_successfully
 
   worker:
@@ -81,6 +118,8 @@ services:
       redis:
         condition: service_healthy
       migrate:
+        condition: service_completed_successfully
+      seed:
         condition: service_completed_successfully
 
 volumes:
