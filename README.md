@@ -32,7 +32,7 @@ This project demonstrates production-style backend patterns for asynchronous ML 
 
 Main components:
 - `client`: Frontend application or end user that interacts with the system.
-- `api_service`: FastAPI producer that receives requests, creates prediction jobs, enqueues `job_id`, and returns job status endpoints.
+- `api_service`: FastAPI producer that receives requests, creates prediction jobs, enqueues `job_id`, and exposes job status endpoints.
 - `ml_engine_service`: Background worker that consumes queue messages, performs inference, and updates job status/results.
 - `database`: Persistent job storage and the single source of truth.
 - `redis`: Queue transport for asynchronous processing (`queued`, `processing`, `retry`, `dlq`).
@@ -57,10 +57,8 @@ Base URL: `http://localhost:<API_PORT>`
 
 ## End-to-End Workflow
 
-There are success path and failed path.
-Success path .. and failure path : retryable or no retry .
-
-here is general flow of the workflow inludng all of those.
+The workflow has two possible outcomes: success, or failure (with retry or DLQ handling).
+The diagram below summarizes the full processing flow.
 
 ```mermaid
 flowchart TD
@@ -81,12 +79,12 @@ flowchart TD
 ```
 
 1. Client submits a prediction request to the API.
-2. API validates payload + SMILES.
+2. API validates the payload and SMILES.
 3. API generates a deterministic `job_id` (idempotent request handling).
 4. API persists the job in PostgreSQL (initial status `PENDING`, mapped to `QUEUED`).
 5. API enqueues `job_id` to Redis queue `queue:ml:queued`.
 6. Worker consumes the queue, updates status to `RUNNING`/`PROCESSING`, and runs inference.
-7. On success: store result, update status to `SUCCESS`/`COMPLETED`, and ack queue item.
+7. On success, the worker stores the result, updates status to `SUCCESS`/`COMPLETED`, and acknowledges the queue item.
 8. On failure: retry or move to DLQ based on policy.
 
 
@@ -145,22 +143,22 @@ demo-api-jelajah-medika/
 
 ## Quick Start (Docker)
 
-1. Prepare env file:
+1. Prepare the environment file:
 ```bash
 cp .env.docker.example .env.docker
 ```
 
-2. Start services:
+2. Start all services:
 ```bash
 docker compose --env-file .env.docker -f docker/docker-compose.dev.yml up --build
 ```
 
-3. Open API docs:
+3. Open the API docs:
 - `http://localhost:<API_PORT>/docs`
 
 ## Short Demo Commands
 
-1. Submit prediction:
+1. Submit a prediction request:
 ```bash
 curl -X POST http://localhost:18000/api/v1/predictions \
   -H 'Content-Type: application/json' \
@@ -175,38 +173,34 @@ curl -X POST http://localhost:18000/api/v1/predictions \
   }'
 ```
 
-2. Poll status:
+2. Poll the job status:
 ```bash
 curl http://localhost:18000/api/v1/jobs/<job_id>
 ```
 
-3. Queue metrics:
+3. Check queue metrics:
 ```bash
 curl http://localhost:18000/api/v1/queues/metrics
 ```
 
 ## Worker Runbook (Short)
 
-Entry point:
+Run worker:
 ```bash
 python -m apps.ml_engine_service.src.worker.queue_worker
 ```
 
-Required env:
-- `DATABASE_URL`
+Required environment variable:
+- `DATABASE_URL` (PostgreSQL connection string)
 
-Main optional env:
+Common optional variables:
 - `REDIS_URL`
 - `ML_QUEUE_KEY` (or alias `REDIS_QUEUE_KEY`)
-- `ML_WORKER_POLL_INTERVAL`
 - `ML_MAX_RETRIES`
-- `ML_GNN_FEATURES`
-- `ML_GNN_DEPTH`
-- `ML_MLP_DEPTH`
-- `ML_ASSETS_ROOT`
+- `ML_WORKER_POLL_INTERVAL`
 - `ML_WORKER_SIMULATE_TIMEOUT_50_50` (`1` enables 50:50 random timeout fault injection for failure testing)
 
-Operational checks:
+Quick operational checks:
 ```bash
 redis-cli LLEN queue:ml:queued
 redis-cli LLEN queue:ml:processing
