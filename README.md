@@ -28,19 +28,19 @@ This project demonstrates production-style backend patterns for asynchronous ML 
 
 ## Architecture Summary
 
-![Flow DTI](docs/img/dti-flow-bg.png)
+![Flow DTI](docs/img/architecture-dti.png)
 
 Main components:
-- `apps/api_service`: FastAPI producer (create job + enqueue).
-- `apps/ml_engine_service`: background consumer worker (dequeue + predict + update status).
-- `apps/shared`: shared domain models, contracts, repository interfaces, DB metadata, queue constants.
-- `PostgreSQL`: persistent job state.
-- `Redis`: queue transport (`queued`, `processing`, `retry`, `dlq`).
+- `client`: Frontend application or end user that interacts with the system.
+- `api_service`: FastAPI producer that receives requests, creates prediction jobs, enqueues `job_id`, and returns job status endpoints.
+- `ml_engine_service`: Background worker that consumes queue messages, performs inference, and updates job status/results.
+- `database`: Persistent job storage and the single source of truth.
+- `redis`: Queue transport for asynchronous processing (`queued`, `processing`, `retry`, `dlq`).
 
 Boundaries:
-- API service does not import worker internal modules.
-- Worker service does not import API internal modules.
-- Both share stable contracts/domain objects through `apps/shared`.
+- `api_service` does not import or depend on worker internal modules.
+- `ml_engine_service` does not import or depend on API internal modules.
+
 
 ## API Endpoints to Showcase
 
@@ -57,14 +57,10 @@ Base URL: `http://localhost:<API_PORT>`
 
 ## End-to-End Workflow
 
-1. Client submits a prediction request to the API.
-2. API validates payload + SMILES.
-3. API generates a deterministic `job_id` (idempotent request handling).
-4. API persists the job in PostgreSQL (initial status `PENDING`, mapped to `QUEUED`).
-5. API enqueues `job_id` to Redis queue `queue:ml:queued`.
-6. Worker consumes the queue, updates status to `RUNNING`/`PROCESSING`, and runs inference.
-7. On success: store result, update status to `SUCCESS`/`COMPLETED`, and ack queue item.
-8. On failure: retry or move to DLQ based on policy.
+There are success path and failed path.
+Success path .. and failure path : retryable or no retry .
+
+here is general flow of the workflow inludng all of those.
 
 ```mermaid
 flowchart TD
@@ -83,6 +79,16 @@ flowchart TD
     M --> E
     L -->|No| N[Move job to DLQ]
 ```
+
+1. Client submits a prediction request to the API.
+2. API validates payload + SMILES.
+3. API generates a deterministic `job_id` (idempotent request handling).
+4. API persists the job in PostgreSQL (initial status `PENDING`, mapped to `QUEUED`).
+5. API enqueues `job_id` to Redis queue `queue:ml:queued`.
+6. Worker consumes the queue, updates status to `RUNNING`/`PROCESSING`, and runs inference.
+7. On success: store result, update status to `SUCCESS`/`COMPLETED`, and ack queue item.
+8. On failure: retry or move to DLQ based on policy.
+
 
 ## Queue Flow and Reliability
 
