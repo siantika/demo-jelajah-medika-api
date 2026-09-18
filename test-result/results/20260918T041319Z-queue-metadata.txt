@@ -1,0 +1,7 @@
+test_type=queue
+base_url=http://127.0.0.1:18000
+vus=20
+duration=20s
+p95_limit_ms=500
+started_at_utc=2026-09-18T04:13:19Z
+k6_version=k6 v2.2.0 (commit/00a9a1b7f5, go1.26.5, linux/amd64)
